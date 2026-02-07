@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gold Paty | Catálogo de Semi-Joias de Luxo</title>
+    <title>Gold Paty | Catálogo Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -29,9 +29,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .animate-slide-left { animation: slideLeft 0.3s ease-out forwards; }
-
         .lux-3d-title {
             background: linear-gradient(135deg, #f5e6ad 0%, #d4af37 25%, #8a6d3b 50%, #d4af37 75%, #f5e6ad 100%);
             background-size: 200% auto;
@@ -39,23 +36,8 @@
             -webkit-text-fill-color: transparent;
             animation: shine 6s linear infinite;
         }
-
         @keyframes shine { to { background-position: 200% center; } }
 
-        .btn-lux {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s ease;
-        }
-        .btn-lux::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
-            transform: rotate(45deg); transition: 0.6s; opacity: 0;
-        }
-        .btn-lux:hover::after { opacity: 1; left: 100%; }
-        
         .admin-input {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(212, 175, 55, 0.2);
@@ -78,20 +60,16 @@
             transition: width 3s linear;
         }
         
-        .admin-badge {
-            background: linear-gradient(90deg, #d4af37, #f5e6ad);
-            color: black;
-            font-size: 10px;
-            font-weight: 900;
-            padding: 2px 8px;
-            border-radius: 99px;
-            text-transform: uppercase;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
         }
 
-        .product-admin-overlay {
-            background: rgba(0,0,0,0.7);
-            backdrop-blur: 2px;
-        }
+        .animate-slide-left { animation: slideLeft 0.3s ease-out forwards; }
+        @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body>
@@ -113,55 +91,42 @@
         };
 
         const INITIAL_PRODUCTS = [
-            { id: '1', name: 'Brinco Argola Cravejada Zircônia', price: 189.90, category: Category.BRINCOS, image: 'https://images.unsplash.com/photo-1535633302703-94209144bd48?auto=format&fit=crop&q=80&w=600' },
-            { id: '2', name: 'Colar Veneziana com Pingente Gota', price: 245.00, category: Category.COLARES, image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=600' },
-            { id: '3', name: 'Pulseira Riviera Luxo', price: 320.00, category: Category.PULSEIRAS, image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&q=80&w=600' }
+            { id: '1', name: 'Brinco Argola Cravejada Zircônia', price: 189.90, category: Category.BRINCOS, image: 'https://images.unsplash.com/photo-1535633302703-94209144bd48?auto=format&fit=crop&q=80&w=600' }
         ];
 
-        // --- COMPONENTES ---
-
-        const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onExitAdmin }) => {
+        const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onExitAdmin, onOpenAdminModal, cloudStatus }) => {
             if (!isVisible) return null;
             return (
-                <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-[#d4af37]/30 py-4 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+                <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-[#d4af37]/30 py-4 px-6 shadow-xl">
                     <div className="flex justify-between items-center max-w-7xl mx-auto">
                         <div 
                             className="relative cursor-pointer select-none"
-                            onMouseDown={onLongPressStart}
-                            onMouseUp={onLongPressEnd}
-                            onMouseLeave={onLongPressEnd}
-                            onTouchStart={onLongPressStart}
-                            onTouchEnd={onLongPressEnd}
+                            onMouseDown={onLongPressStart} onMouseUp={onLongPressEnd} onMouseLeave={onLongPressEnd}
+                            onTouchStart={onLongPressStart} onTouchEnd={onLongPressEnd}
                             onContextMenu={(e) => e.preventDefault()}
                         >
-                            <div className="flex flex-col items-center md:items-start">
+                            <div className="flex flex-col items-start">
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] text-[#d4af37] uppercase">Gold Paty</h1>
-                                    {isEditMode && <span className="admin-badge">ADM</span>}
+                                    {isEditMode && <span className="bg-[#d4af37] text-black text-[8px] font-black px-2 py-0.5 rounded-full">ADM</span>}
                                 </div>
-                                <p className="text-[8px] uppercase tracking-[0.4em] text-gray-500 font-bold">High Jewelry</p>
+                                <div className="flex items-center text-[7px] uppercase tracking-widest text-gray-500 mt-1">
+                                    <span className={`status-dot ${cloudStatus === 'online' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                    {cloudStatus === 'online' ? 'Nuvem Ativa' : 'Modo Local'}
+                                </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                         </div>
                         
                         <div className="flex items-center gap-4">
                             {isEditMode && (
-                                <button 
-                                    onClick={onExitAdmin}
-                                    className="text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-[#d4af37] transition-colors border border-white/10 px-3 py-1 rounded-sm"
-                                >
-                                    Voltar ao Início
-                                </button>
+                                <button onClick={onOpenAdminModal} className="text-[9px] font-black uppercase tracking-widest text-[#d4af37] border border-[#d4af37] px-3 py-1 hover:bg-[#d4af37] hover:text-black transition-all">Painel ADM</button>
                             )}
-                            <button onClick={onOpenCart} className="relative p-2 group">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white group-hover:text-[#d4af37] transition-colors">
+                            <button onClick={onOpenCart} className="relative p-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
                                 </svg>
-                                {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black ring-2 ring-black">
-                                        {cartCount}
-                                    </span>
-                                )}
+                                {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black">{cartCount}</span>}
                             </button>
                         </div>
                     </div>
@@ -169,86 +134,86 @@
             );
         };
 
-        const ProductCard = ({ product, onAddToCart, isEditMode, onDelete, onEdit }) => (
-            <div className="group flex flex-col bg-[#111] rounded-sm overflow-hidden border border-white/5 hover:border-[#d4af37]/30 transition-all duration-500 relative">
-                <div className="relative aspect-[3/4] overflow-hidden bg-gray-900">
-                    <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
-                    
-                    {isEditMode ? (
-                        <div className="absolute inset-0 product-admin-overlay flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => onEdit(product)} className="bg-white text-black px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-[#d4af37] transition-all w-2/3">Editar</button>
-                            <button onClick={() => onDelete(product.id)} className="bg-red-600 text-white px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-red-800 transition-all w-2/3">Excluir</button>
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={() => onAddToCart(product)}
-                            className="absolute bottom-4 left-4 right-4 bg-white text-black py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all duration-300"
-                        >
-                            Adicionar ao Carrinho
-                        </button>
-                    )}
-                </div>
-                <div className="p-5">
-                    <p className="text-[#d4af37] text-[10px] uppercase tracking-widest mb-1 font-bold">{product.category}</p>
-                    <h4 className="text-white font-medium text-sm mb-2 truncate">{product.name}</h4>
-                    <p className="text-white font-black text-lg">R$ {Number(product.price).toFixed(2)}</p>
-                </div>
-            </div>
-        );
-
-        const Modal = ({ title, onClose, children }) => (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
-                <div className="relative bg-[#0a0a0a] border border-[#d4af37]/30 w-full max-w-lg p-8 animate-fade-in shadow-2xl">
-                    <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                        <h3 className="text-2xl font-serif text-[#d4af37] uppercase">{title}</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
-                    </div>
-                    {children}
-                </div>
-            </div>
-        );
-
-        // --- APP PRINCIPAL ---
-
         const App = () => {
-            const [products, setProducts] = useState(() => {
-                const saved = localStorage.getItem('gp_products_v2');
-                return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-            });
+            const [products, setProducts] = useState(INITIAL_PRODUCTS);
             const [isCatalogOpen, setIsCatalogOpen] = useState(false);
             const [selectedCategory, setSelectedCategory] = useState(Category.TODOS);
             const [cart, setCart] = useState([]);
             const [isCartOpen, setIsCartOpen] = useState(false);
             const [search, setSearch] = useState('');
             
-            // Admin States
+            // Admin & Cloud States
             const [isEditMode, setIsEditMode] = useState(false);
             const [isPressing, setIsPressing] = useState(false);
             const [showPasswordModal, setShowPasswordModal] = useState(false);
             const [passwordInput, setPasswordInput] = useState('');
-            const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+            const [adminTab, setAdminTab] = useState('products'); // 'products' | 'cloud'
+            const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
             const [editingProduct, setEditingProduct] = useState(null);
             const [form, setForm] = useState({ name: '', price: '', category: Category.BRINCOS, image: '' });
+            const [isSyncing, setIsSyncing] = useState(false);
             
+            const [cloudConfig, setCloudConfig] = useState(() => {
+                const saved = localStorage.getItem('gp_cloud_config');
+                return saved ? JSON.parse(saved) : { binId: '', apiKey: '' };
+            });
+
             const pressTimer = useRef(null);
 
+            // Carregar dados (Nuvem -> LocalStorage -> Initial)
             useEffect(() => {
-                localStorage.setItem('gp_products_v2', JSON.stringify(products));
-            }, [products]);
+                const loadData = async () => {
+                    if (cloudConfig.binId && cloudConfig.apiKey) {
+                        try {
+                            const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
+                                headers: { 'X-Master-Key': cloudConfig.apiKey }
+                            });
+                            const data = await res.json();
+                            if (data.record) {
+                                setProducts(data.record);
+                                localStorage.setItem('gp_products_v2', JSON.stringify(data.record));
+                                return;
+                            }
+                        } catch (e) { console.error("Erro ao carregar da nuvem", e); }
+                    }
+                    const local = localStorage.getItem('gp_products_v2');
+                    if (local) setProducts(JSON.parse(local));
+                };
+                loadData();
+            }, [cloudConfig.binId, cloudConfig.apiKey]);
 
-            const handleLongPressStart = useCallback(() => {
+            const syncToCloud = async (newProducts) => {
+                if (!cloudConfig.binId || !cloudConfig.apiKey) {
+                    localStorage.setItem('gp_products_v2', JSON.stringify(newProducts));
+                    return;
+                }
+                setIsSyncing(true);
+                try {
+                    await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': cloudConfig.apiKey
+                        },
+                        body: JSON.stringify(newProducts)
+                    });
+                    localStorage.setItem('gp_products_v2', JSON.stringify(newProducts));
+                } catch (e) { alert("Falha ao sincronizar com a nuvem!"); }
+                setIsSyncing(false);
+            };
+
+            const handleLongPressStart = () => {
                 setIsPressing(true);
                 pressTimer.current = setTimeout(() => {
                     setIsPressing(false);
                     setShowPasswordModal(true);
                 }, 3000);
-            }, []);
+            };
 
-            const handleLongPressEnd = useCallback(() => {
+            const handleLongPressEnd = () => {
                 setIsPressing(false);
                 if (pressTimer.current) clearTimeout(pressTimer.current);
-            }, []);
+            };
 
             const handlePasswordSubmit = (e) => {
                 e.preventDefault();
@@ -257,64 +222,36 @@
                     setShowPasswordModal(false);
                     setPasswordInput('');
                     if (!isCatalogOpen) setIsCatalogOpen(true);
-                } else {
-                    alert("Senha Incorreta");
-                }
+                } else { alert("Senha Incorreta"); }
             };
 
-            const handleExitAdmin = () => {
-                setIsEditMode(false);
-                setIsCatalogOpen(false);
+            const handleSaveProduct = async (e) => {
+                e.preventDefault();
+                let updated;
+                if (editingProduct) {
+                    updated = products.map(p => p.id === editingProduct.id ? { ...form, id: p.id, price: parseFloat(form.price) } : p);
+                } else {
+                    updated = [...products, { ...form, id: Date.now().toString(), price: parseFloat(form.price) }];
+                }
+                setProducts(updated);
+                await syncToCloud(updated);
+                setEditingProduct(null);
+                setForm({ name: '', price: '', category: Category.BRINCOS, image: '' });
+            };
+
+            const handleDelete = async (id) => {
+                if (confirm("Excluir esta peça?")) {
+                    const updated = products.filter(p => p.id !== id);
+                    setProducts(updated);
+                    await syncToCloud(updated);
+                }
             };
 
             const filtered = useMemo(() => 
                 products.filter(p => (selectedCategory === Category.TODOS || p.category === selectedCategory) && p.name.toLowerCase().includes(search.toLowerCase()))
             , [selectedCategory, search, products]);
 
-            const addToCart = (product) => {
-                setCart(prev => {
-                    const ex = prev.find(i => i.id === product.id);
-                    if (ex) return prev.map(i => i.id === product.id ? {...i, quantity: i.quantity + 1} : i);
-                    return [...prev, {...product, quantity: 1}];
-                });
-                setIsCartOpen(true);
-            };
-
-            const handleDelete = (id) => {
-                if (confirm("Deseja realmente excluir este produto?")) {
-                    setProducts(prev => prev.filter(p => p.id !== id));
-                }
-            };
-
-            const openAddModal = () => {
-                setEditingProduct(null);
-                setForm({ name: '', price: '', category: Category.BRINCOS, image: '' });
-                setIsFormModalOpen(true);
-            };
-
-            const openEditModal = (product) => {
-                setEditingProduct(product);
-                setForm({ ...product });
-                setIsFormModalOpen(true);
-            };
-
-            const handleSave = (e) => {
-                e.preventDefault();
-                if (!form.name || !form.price || !form.image) return alert("Preencha todos os campos.");
-                
-                if (editingProduct) {
-                    setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...form, id: p.id, price: parseFloat(form.price) } : p));
-                } else {
-                    setProducts(prev => [...prev, { ...form, id: Date.now().toString(), price: parseFloat(form.price) }]);
-                }
-                setIsFormModalOpen(false);
-            };
-
-            const sendWhatsApp = () => {
-                const cartTotal = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-                const text = `Olá Gold Paty! Desejo encomendar:\n\n${cart.map(i => `- ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cartTotal.toFixed(2)}*`;
-                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-            };
+            const cloudStatus = (cloudConfig.binId && cloudConfig.apiKey) ? 'online' : 'offline';
 
             return (
                 <div className="min-h-screen bg-black text-white">
@@ -326,173 +263,178 @@
                         onLongPressStart={handleLongPressStart}
                         onLongPressEnd={handleLongPressEnd}
                         isPressing={isPressing}
-                        onExitAdmin={handleExitAdmin}
+                        onExitAdmin={() => {setIsEditMode(false); setIsCatalogOpen(false);}}
+                        onOpenAdminModal={() => setIsAdminModalOpen(true)}
+                        cloudStatus={cloudStatus}
                     />
 
                     {!isCatalogOpen ? (
-                        <header className="h-screen relative flex items-center justify-center text-center overflow-hidden">
-                            <div className="absolute inset-0 bg-black/70 z-10" />
-                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover scale-105 opacity-50 grayscale" />
-                            <div className="relative z-20 px-6 max-w-5xl">
+                        <header className="h-screen relative flex items-center justify-center text-center px-6">
+                            <div className="absolute inset-0 bg-black/60 z-10" />
+                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover grayscale opacity-40" />
+                            <div className="relative z-20">
                                 <div 
-                                    className="relative cursor-pointer mb-8 group inline-block select-none"
-                                    onMouseDown={handleLongPressStart}
-                                    onMouseUp={handleLongPressEnd}
-                                    onMouseLeave={handleLongPressEnd}
-                                    onTouchStart={handleLongPressStart}
-                                    onTouchEnd={handleLongPressEnd}
-                                    onContextMenu={(e) => e.preventDefault()}
+                                    className="cursor-pointer mb-6 inline-block"
+                                    onMouseDown={handleLongPressStart} onMouseUp={handleLongPressEnd} onTouchStart={handleLongPressStart} onTouchEnd={handleLongPressEnd}
                                 >
-                                    <h2 className="text-7xl md:text-[10rem] font-serif tracking-tight lux-3d-title leading-none">
-                                        Gold Paty
-                                    </h2>
+                                    <h2 className="text-7xl md:text-9xl font-serif lux-3d-title">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[0.8em] uppercase text-[10px] md:text-sm mb-12 font-bold text-white/90">Semi-Joias de Luxo</p>
-                                <div className="flex flex-col items-center gap-4">
-                                    <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-[0.4em] btn-lux">Explorar Coleção</button>
-                                    {isEditMode && <span className="admin-badge text-xs">Painel ADM Ativo</span>}
-                                </div>
+                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70">Luxo em Semi-Joias</p>
+                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all">Ver Catálogo</button>
                             </div>
                         </header>
                     ) : (
-                        <div className="animate-fade-in pb-20">
-                            <main className="max-w-7xl mx-auto px-6 py-20">
-                                <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-8">
-                                    <div className="flex flex-wrap gap-3 justify-center">
-                                        {Object.values(Category).map(c => (
-                                            <button key={c} onClick={() => setSelectedCategory(c)} className={`px-6 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest border ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black' : 'border-white/10 text-gray-500'}`}>{c}</button>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center gap-4 w-full md:w-auto">
-                                        <input type="text" placeholder="PESQUISAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64" />
-                                        {isEditMode && (
-                                            <button onClick={openAddModal} className="bg-[#d4af37] text-black px-4 py-2 rounded-full font-black text-xl hover:scale-110 transition-all">+</button>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-                                    {filtered.map(p => (
-                                        <ProductCard 
-                                            key={p.id} 
-                                            product={p} 
-                                            onAddToCart={addToCart} 
-                                            isEditMode={isEditMode}
-                                            onDelete={handleDelete}
-                                            onEdit={openEditModal}
-                                        />
+                        <main className="max-w-7xl mx-auto px-6 py-20 animate-fade-in">
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.values(Category).map(c => (
+                                        <button key={c} onClick={() => setSelectedCategory(c)} className={`px-4 py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest border ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black' : 'border-white/10 text-gray-500'}`}>{c}</button>
                                     ))}
-                                    {filtered.length === 0 && <p className="col-span-full text-center text-gray-500 py-20 italic">Nenhum produto encontrado.</p>}
                                 </div>
-                            </main>
+                                <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64" />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                                {filtered.map(p => (
+                                    <div key={p.id} className="group bg-[#111] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/40 relative">
+                                        <div className="aspect-[3/4] overflow-hidden bg-gray-900">
+                                            <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-duration-700" alt={p.name} />
+                                            {isEditMode ? (
+                                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setEditingProduct(p); setForm(p); setIsAdminModalOpen(true); setAdminTab('products'); }} className="bg-white text-black px-6 py-2 text-[9px] font-black uppercase tracking-widest w-2/3">Editar</button>
+                                                    <button onClick={() => handleDelete(p.id)} className="bg-red-600 text-white px-6 py-2 text-[9px] font-black uppercase tracking-widest w-2/3">Excluir</button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => {
+                                                    setCart(prev => {
+                                                        const ex = prev.find(i => i.id === p.id);
+                                                        if (ex) return prev.map(i => i.id === p.id ? {...i, quantity: i.quantity + 1} : i);
+                                                        return [...prev, {...p, quantity: 1}];
+                                                    });
+                                                    setIsCartOpen(true);
+                                                }} className="absolute bottom-4 left-4 right-4 bg-white text-black py-3 text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Adicionar</button>
+                                            )}
+                                        </div>
+                                        <div className="p-5">
+                                            <p className="text-[#d4af37] text-[9px] uppercase font-bold mb-1 tracking-widest">{p.category}</p>
+                                            <h4 className="text-sm font-medium mb-1 truncate">{p.name}</h4>
+                                            <p className="font-bold">R$ {p.price.toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </main>
+                    )}
+
+                    {/* MODAL ADMINISTRATIVO CONSOLIDADO */}
+                    {isAdminModalOpen && (
+                        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-black/95" onClick={() => setIsAdminModalOpen(false)} />
+                            <div className="relative bg-[#0a0a0a] border border-[#d4af37]/30 w-full max-w-xl p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+                                <div className="flex gap-6 border-b border-white/5 mb-8">
+                                    <button onClick={() => setAdminTab('products')} className={`pb-4 text-[10px] font-black uppercase tracking-[0.2em] ${adminTab === 'products' ? 'text-[#d4af37] border-b-2 border-[#d4af37]' : 'text-gray-500'}`}>Produtos</button>
+                                    <button onClick={() => setAdminTab('cloud')} className={`pb-4 text-[10px] font-black uppercase tracking-[0.2em] ${adminTab === 'cloud' ? 'text-[#d4af37] border-b-2 border-[#d4af37]' : 'text-gray-500'}`}>Nuvem (JSONbin)</button>
+                                </div>
+
+                                {adminTab === 'products' ? (
+                                    <form onSubmit={handleSaveProduct} className="space-y-5">
+                                        <h3 className="text-xl font-serif text-[#d4af37]">{editingProduct ? "Editar Peça" : "Nova Peça"}</h3>
+                                        <input className="admin-input" placeholder="Nome da Peça" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <input type="number" step="0.01" className="admin-input" placeholder="Preço" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+                                            <select className="admin-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                                                {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <input className="admin-input" placeholder="URL da Imagem (Hospede em sites como Imgur ou PostImages)" value={form.image} onChange={e => setForm({...form, image: e.target.value})} required />
+                                        <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest disabled:opacity-50">
+                                            {isSyncing ? "Sincronizando..." : (editingProduct ? "Salvar Alterações" : "Adicionar ao Catálogo")}
+                                        </button>
+                                        {editingProduct && <button type="button" onClick={() => {setEditingProduct(null); setForm({name:'', price:'', category:Category.BRINCOS, image:''});}} className="w-full text-gray-500 text-[9px] uppercase font-bold">Cancelar Edição</button>}
+                                    </form>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <p className="text-gray-400 text-xs leading-relaxed">Configurando o <strong>JSONbin.io</strong>, seu catálogo será atualizado para todos os clientes em tempo real.</p>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[9px] uppercase font-bold text-gray-500 block mb-2">JSONbin Master Key (API Key)</label>
+                                                <input className="admin-input" type="password" value={cloudConfig.apiKey} onChange={e => setCloudConfig({...cloudConfig, apiKey: e.target.value})} placeholder="X-Master-Key" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] uppercase font-bold text-gray-500 block mb-2">Bin ID</label>
+                                                <input className="admin-input" value={cloudConfig.binId} onChange={e => setCloudConfig({...cloudConfig, binId: e.target.value})} placeholder="Ex: 65f..." />
+                                            </div>
+                                        </div>
+                                        <button onClick={() => {
+                                            localStorage.setItem('gp_cloud_config', JSON.stringify(cloudConfig));
+                                            alert("Configurações salvas! Reiniciando conexão...");
+                                            window.location.reload();
+                                        }} className="w-full bg-white text-black py-4 font-black uppercase text-[10px] tracking-widest">Salvar e Conectar</button>
+                                        <div className="text-[10px] text-gray-600 bg-white/5 p-4 border border-white/5 italic">
+                                            Dica: Crie uma conta no JSONbin.io, crie um "Bin" com sua lista atual e cole os dados aqui.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
                     {showPasswordModal && (
-                        <Modal title="Área Restrita" onClose={() => setShowPasswordModal(false)}>
-                            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Digite a Senha de Acesso</label>
-                                    <input 
-                                        type="password"
-                                        className="admin-input" 
-                                        autoFocus
-                                        value={passwordInput} 
-                                        onChange={e => setPasswordInput(e.target.value)} 
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                                <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest hover:bg-white transition-all">
-                                    Desbloquear Painel
-                                </button>
+                        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90">
+                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-4 text-center">
+                                <h3 className="text-[#d4af37] font-serif text-2xl">Área Restrita</h3>
+                                <input type="password" autoFocus className="admin-input text-center" placeholder="Senha" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+                                <button type="submit" className="w-full bg-[#d4af37] text-black py-3 font-black uppercase text-[10px] tracking-widest">Acessar</button>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase">Cancelar</button>
                             </form>
-                        </Modal>
+                        </div>
                     )}
-
-                    {isFormModalOpen && (
-                        <Modal title={editingProduct ? "Editar Peça" : "Nova Peça"} onClose={() => setIsFormModalOpen(false)}>
-                            <form onSubmit={handleSave} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Nome do Produto</label>
-                                    <input className="admin-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Ex: Brinco Argola Ouro" />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Preço (R$)</label>
-                                        <input type="number" step="0.01" className="admin-input" value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="0.00" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Categoria</label>
-                                        <select className="admin-input bg-[#111]" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                                            {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">URL da Imagem</label>
-                                    <input className="admin-input" value={form.image} onChange={e => setForm({...form, image: e.target.value})} placeholder="https://unsplash.com/..." />
-                                </div>
-                                <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest hover:bg-white transition-all">
-                                    {editingProduct ? "Salvar Alterações" : "Adicionar ao Catálogo"}
-                                </button>
-                            </form>
-                        </Modal>
-                    )}
-
-                    <footer className="bg-black border-t border-white/5 py-12 text-center flex flex-col items-center">
-                        <p className="text-gray-700 text-[8px] uppercase tracking-[0.5em]">© Gold Paty | Boutique de Semi-Joias de Luxo</p>
-                        {isEditMode && (
-                             <button onClick={handleExitAdmin} className="mt-4 text-red-900 text-[8px] uppercase tracking-[0.2em] hover:text-red-500 transition-colors">Sair e Voltar ao Início</button>
-                        )}
-                    </footer>
 
                     {isCartOpen && (
-                        <div className="fixed inset-0 z-[100] flex justify-end">
+                        <div className="fixed inset-0 z-[200] flex justify-end">
                             <div className="absolute inset-0 bg-black/80" onClick={() => setIsCartOpen(false)} />
-                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-white/5 shadow-2xl">
-                                <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase">Meu Pedido</h3>
-                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl font-light hover:text-white">&times;</button>
+                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-white/10 p-8">
+                                <div className="flex justify-between items-center mb-10">
+                                    <h3 className="text-2xl font-serif text-[#d4af37]">Minha Sacola</h3>
+                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl">&times;</button>
                                 </div>
-                                <div className="flex-grow overflow-y-auto p-8 space-y-6">
-                                    {cart.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                                            <p className="text-gray-600 italic">Sua sacola está vazia</p>
-                                            <button onClick={() => setIsCartOpen(false)} className="text-[#d4af37] text-[10px] font-black uppercase tracking-widest border border-[#d4af37] px-6 py-2">Voltar às Compras</button>
-                                        </div>
-                                    ) : cart.map(i => (
-                                        <div key={i.id} className="flex gap-4 border-b border-white/5 pb-6">
-                                            <img src={i.image} className="w-20 h-24 object-cover" />
-                                            <div className="flex-grow flex flex-col justify-between">
-                                                <div>
-                                                    <p className="text-sm font-bold uppercase tracking-tight">{i.name}</p>
-                                                    <p className="text-[#d4af37] text-xs mt-1">R$ {Number(i.price).toFixed(2)}</p>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center border border-white/10">
-                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="px-3 py-1 text-gray-500">-</button>
-                                                        <span className="px-3 py-1 text-xs font-bold border-x border-white/10">{i.quantity}</span>
-                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="px-3 py-1 text-gray-500">+</button>
-                                                    </div>
+                                <div className="flex-grow overflow-y-auto space-y-6">
+                                    {cart.length === 0 ? <p className="text-center text-gray-500 italic mt-20">Sua sacola está vazia.</p> : cart.map(i => (
+                                        <div key={i.id} className="flex gap-4 border-b border-white/5 pb-4">
+                                            <img src={i.image} className="w-16 h-20 object-cover" />
+                                            <div className="flex-grow">
+                                                <p className="text-xs font-bold uppercase">{i.name}</p>
+                                                <p className="text-[#d4af37] text-xs mt-1">R$ {i.price.toFixed(2)}</p>
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500">-</button>
+                                                    <span className="text-xs">{i.quantity}</span>
+                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500">+</button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                                 {cart.length > 0 && (
-                                    <div className="p-8 bg-[#0d0d0d] border-t border-white/5 space-y-6">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs uppercase tracking-widest text-gray-400">Subtotal</span>
-                                            <span className="text-xl font-serif text-white font-bold">R$ {cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}</span>
+                                    <div className="mt-auto pt-8 border-t border-white/5">
+                                        <div className="flex justify-between mb-6">
+                                            <span className="text-gray-400 uppercase text-[10px]">Total</span>
+                                            <span className="font-bold text-xl">R$ {cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}</span>
                                         </div>
-                                        <button onClick={sendWhatsApp} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 hover:brightness-110 transition-all">
-                                            Finalizar no WhatsApp
-                                        </button>
+                                        <button onClick={() => {
+                                            const text = `Olá Gold Paty! Desejo encomendar:\n\n${cart.map(i => `- ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}*`;
+                                            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+                                        }} className="w-full bg-[#25D366] text-white py-4 font-black uppercase text-[10px] tracking-widest">Finalizar Pedido</button>
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
+
+                    <footer className="py-20 text-center border-t border-white/5 opacity-50">
+                        <p className="text-[8px] tracking-[0.4em] uppercase">Gold Paty © Boutique de Luxo Digital</p>
+                        {isEditMode && <button onClick={() => {setIsEditMode(false); setIsCatalogOpen(false);}} className="mt-4 text-red-900 text-[8px] uppercase font-bold tracking-widest hover:text-red-500 transition-colors">Sair do Modo Gestão</button>}
+                    </footer>
                 </div>
             );
         };
