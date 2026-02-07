@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -70,6 +70,11 @@
 
         .animate-slide-left { animation: slideLeft 0.3s ease-out forwards; }
         @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -94,7 +99,7 @@
             { id: '1', name: 'Brinco Argola Cravejada Zircônia', price: 189.90, category: Category.BRINCOS, image: 'https://images.unsplash.com/photo-1535633302703-94209144bd48?auto=format&fit=crop&q=80&w=600' }
         ];
 
-        const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onExitAdmin, onOpenAdminModal, cloudStatus }) => {
+        const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onOpenAdminModal, cloudStatus }) => {
             if (!isVisible) return null;
             return (
                 <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-[#d4af37]/30 py-4 px-6 shadow-xl">
@@ -168,13 +173,17 @@
                             const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
                                 headers: { 'X-Master-Key': cloudConfig.apiKey }
                             });
+                            if (!res.ok) throw new Error("Falha na rede");
                             const data = await res.json();
-                            if (data.record) {
+                            if (data.record && Array.isArray(data.record)) {
                                 setProducts(data.record);
                                 localStorage.setItem('gp_products_v2', JSON.stringify(data.record));
                                 return;
                             }
-                        } catch (e) { console.error("Erro ao carregar da nuvem", e); }
+                        } catch (e) { 
+                            console.error("Erro ao carregar da nuvem", e);
+                            // Fallback para local em caso de erro na nuvem
+                        }
                     }
                     const local = localStorage.getItem('gp_products_v2');
                     if (local) setProducts(JSON.parse(local));
@@ -189,7 +198,7 @@
                 }
                 setIsSyncing(true);
                 try {
-                    await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -197,7 +206,11 @@
                         },
                         body: JSON.stringify(newProducts)
                     });
-                    localStorage.setItem('gp_products_v2', JSON.stringify(newProducts));
+                    if (res.ok) {
+                        localStorage.setItem('gp_products_v2', JSON.stringify(newProducts));
+                    } else {
+                        alert("Ocorreu um erro ao salvar na nuvem. Verifique suas chaves.");
+                    }
                 } catch (e) { alert("Falha ao sincronizar com a nuvem!"); }
                 setIsSyncing(false);
             };
@@ -237,6 +250,7 @@
                 await syncToCloud(updated);
                 setEditingProduct(null);
                 setForm({ name: '', price: '', category: Category.BRINCOS, image: '' });
+                setIsAdminModalOpen(false);
             };
 
             const handleDelete = async (id) => {
@@ -245,6 +259,18 @@
                     setProducts(updated);
                     await syncToCloud(updated);
                 }
+            };
+
+            const exitAdmin = () => {
+                setIsEditMode(false);
+                setIsCatalogOpen(false);
+                setIsAdminModalOpen(false);
+            };
+
+            const copyInitialCode = () => {
+                const code = JSON.stringify(INITIAL_PRODUCTS, null, 2);
+                navigator.clipboard.writeText(code);
+                alert("Código de exemplo copiado! Vá no JSONbin, apague tudo e cole este código.");
             };
 
             const filtered = useMemo(() => 
@@ -263,7 +289,6 @@
                         onLongPressStart={handleLongPressStart}
                         onLongPressEnd={handleLongPressEnd}
                         isPressing={isPressing}
-                        onExitAdmin={() => {setIsEditMode(false); setIsCatalogOpen(false);}}
                         onOpenAdminModal={() => setIsAdminModalOpen(true)}
                         cloudStatus={cloudStatus}
                     />
@@ -281,7 +306,12 @@
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
                                 <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70">Luxo em Semi-Joias</p>
-                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all">Ver Catálogo</button>
+                                <div className="flex flex-col gap-4 items-center">
+                                    <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all">Ver Catálogo</button>
+                                    {isEditMode && (
+                                        <button onClick={() => setIsAdminModalOpen(true)} className="text-[#d4af37] text-[10px] font-black uppercase tracking-widest underline">Painel Administrativo</button>
+                                    )}
+                                </div>
                             </div>
                         </header>
                     ) : (
@@ -292,7 +322,12 @@
                                         <button key={c} onClick={() => setSelectedCategory(c)} className={`px-4 py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest border ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black' : 'border-white/10 text-gray-500'}`}>{c}</button>
                                     ))}
                                 </div>
-                                <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64" />
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <input type="text" placeholder="BUSCAR..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64" />
+                                    {isEditMode && (
+                                        <button onClick={() => {setEditingProduct(null); setForm({name:'', price:'', category:Category.BRINCOS, image:''}); setIsAdminModalOpen(true);}} className="bg-[#d4af37] text-black rounded-full w-8 h-8 font-bold flex items-center justify-center">+</button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -332,6 +367,11 @@
                         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
                             <div className="absolute inset-0 bg-black/95" onClick={() => setIsAdminModalOpen(false)} />
                             <div className="relative bg-[#0a0a0a] border border-[#d4af37]/30 w-full max-w-xl p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase">Painel Gestor</h3>
+                                    <button onClick={exitAdmin} className="text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/30 px-3 py-1 hover:bg-red-500 hover:text-white transition-all">Sair do ADM (Voltar Início)</button>
+                                </div>
+                                
                                 <div className="flex gap-6 border-b border-white/5 mb-8">
                                     <button onClick={() => setAdminTab('products')} className={`pb-4 text-[10px] font-black uppercase tracking-[0.2em] ${adminTab === 'products' ? 'text-[#d4af37] border-b-2 border-[#d4af37]' : 'text-gray-500'}`}>Produtos</button>
                                     <button onClick={() => setAdminTab('cloud')} className={`pb-4 text-[10px] font-black uppercase tracking-[0.2em] ${adminTab === 'cloud' ? 'text-[#d4af37] border-b-2 border-[#d4af37]' : 'text-gray-500'}`}>Nuvem (JSONbin)</button>
@@ -339,7 +379,7 @@
 
                                 {adminTab === 'products' ? (
                                     <form onSubmit={handleSaveProduct} className="space-y-5">
-                                        <h3 className="text-xl font-serif text-[#d4af37]">{editingProduct ? "Editar Peça" : "Nova Peça"}</h3>
+                                        <h4 className="text-sm uppercase tracking-widest text-gray-500 font-bold">{editingProduct ? "Editar Peça" : "Nova Peça"}</h4>
                                         <input className="admin-input" placeholder="Nome da Peça" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                                         <div className="grid grid-cols-2 gap-4">
                                             <input type="number" step="0.01" className="admin-input" placeholder="Preço" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
@@ -347,7 +387,7 @@
                                                 {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
-                                        <input className="admin-input" placeholder="URL da Imagem (Hospede em sites como Imgur ou PostImages)" value={form.image} onChange={e => setForm({...form, image: e.target.value})} required />
+                                        <input className="admin-input" placeholder="URL da Imagem" value={form.image} onChange={e => setForm({...form, image: e.target.value})} required />
                                         <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest disabled:opacity-50">
                                             {isSyncing ? "Sincronizando..." : (editingProduct ? "Salvar Alterações" : "Adicionar ao Catálogo")}
                                         </button>
@@ -355,25 +395,32 @@
                                     </form>
                                 ) : (
                                     <div className="space-y-6">
-                                        <p className="text-gray-400 text-xs leading-relaxed">Configurando o <strong>JSONbin.io</strong>, seu catálogo será atualizado para todos os clientes em tempo real.</p>
+                                        <p className="text-gray-400 text-xs leading-relaxed">Sincronize seu catálogo para que todos os clientes vejam suas peças em tempo real.</p>
+                                        
+                                        <div className="p-4 bg-white/5 border border-[#d4af37]/30 space-y-3">
+                                            <p className="text-[10px] font-bold text-[#d4af37] uppercase tracking-widest">⚠️ O Bin não pode ser criado vazio!</p>
+                                            <p className="text-[10px] text-gray-400">Ao criar seu Bin no JSONbin.io, apague tudo o que estiver no campo de texto e cole o código abaixo:</p>
+                                            <button onClick={copyInitialCode} className="w-full bg-[#d4af37]/10 text-[#d4af37] px-3 py-3 rounded-sm font-bold uppercase border border-[#d4af37]/30 hover:bg-[#d4af37] hover:text-black transition-all text-[10px]">
+                                                COPIAR CÓDIGO PARA O BIN
+                                            </button>
+                                        </div>
+
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="text-[9px] uppercase font-bold text-gray-500 block mb-2">JSONbin Master Key (API Key)</label>
-                                                <input className="admin-input" type="password" value={cloudConfig.apiKey} onChange={e => setCloudConfig({...cloudConfig, apiKey: e.target.value})} placeholder="X-Master-Key" />
+                                                <input className="admin-input" type="password" value={cloudConfig.apiKey} onChange={e => setCloudConfig({...cloudConfig, apiKey: e.target.value})} placeholder="Sua Master Key aqui" />
                                             </div>
                                             <div>
                                                 <label className="text-[9px] uppercase font-bold text-gray-500 block mb-2">Bin ID</label>
-                                                <input className="admin-input" value={cloudConfig.binId} onChange={e => setCloudConfig({...cloudConfig, binId: e.target.value})} placeholder="Ex: 65f..." />
+                                                <input className="admin-input" value={cloudConfig.binId} onChange={e => setCloudConfig({...cloudConfig, binId: e.target.value})} placeholder="ID do Bin criado" />
                                             </div>
                                         </div>
                                         <button onClick={() => {
+                                            if(!cloudConfig.apiKey || !cloudConfig.binId) return alert("Preencha as chaves da nuvem.");
                                             localStorage.setItem('gp_cloud_config', JSON.stringify(cloudConfig));
-                                            alert("Configurações salvas! Reiniciando conexão...");
+                                            alert("Configurações salvas! Reiniciando catálogo...");
                                             window.location.reload();
-                                        }} className="w-full bg-white text-black py-4 font-black uppercase text-[10px] tracking-widest">Salvar e Conectar</button>
-                                        <div className="text-[10px] text-gray-600 bg-white/5 p-4 border border-white/5 italic">
-                                            Dica: Crie uma conta no JSONbin.io, crie um "Bin" com sua lista atual e cole os dados aqui.
-                                        </div>
+                                        }} className="w-full bg-white text-black py-4 font-black uppercase text-[10px] tracking-widest">Conectar Nuvem</button>
                                     </div>
                                 )}
                             </div>
@@ -381,11 +428,12 @@
                     )}
 
                     {showPasswordModal && (
-                        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90">
+                        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95">
                             <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-4 text-center">
-                                <h3 className="text-[#d4af37] font-serif text-2xl">Área Restrita</h3>
+                                <h3 className="text-[#d4af37] font-serif text-2xl uppercase tracking-widest">Acesso Restrito</h3>
+                                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Apenas para Gold Paty Gestão</p>
                                 <input type="password" autoFocus className="admin-input text-center" placeholder="Senha" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                                <button type="submit" className="w-full bg-[#d4af37] text-black py-3 font-black uppercase text-[10px] tracking-widest">Acessar</button>
+                                <button type="submit" className="w-full bg-[#d4af37] text-black py-3 font-black uppercase text-[10px] tracking-widest">Acessar Painel</button>
                                 <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase">Cancelar</button>
                             </form>
                         </div>
@@ -394,22 +442,22 @@
                     {isCartOpen && (
                         <div className="fixed inset-0 z-[200] flex justify-end">
                             <div className="absolute inset-0 bg-black/80" onClick={() => setIsCartOpen(false)} />
-                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-white/10 p-8">
+                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-white/10 p-8 shadow-2xl">
                                 <div className="flex justify-between items-center mb-10">
-                                    <h3 className="text-2xl font-serif text-[#d4af37]">Minha Sacola</h3>
-                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl">&times;</button>
+                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase">Minha Sacola</h3>
+                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl font-light">&times;</button>
                                 </div>
                                 <div className="flex-grow overflow-y-auto space-y-6">
                                     {cart.length === 0 ? <p className="text-center text-gray-500 italic mt-20">Sua sacola está vazia.</p> : cart.map(i => (
                                         <div key={i.id} className="flex gap-4 border-b border-white/5 pb-4">
                                             <img src={i.image} className="w-16 h-20 object-cover" />
                                             <div className="flex-grow">
-                                                <p className="text-xs font-bold uppercase">{i.name}</p>
-                                                <p className="text-[#d4af37] text-xs mt-1">R$ {i.price.toFixed(2)}</p>
+                                                <p className="text-xs font-bold uppercase tracking-tight">{i.name}</p>
+                                                <p className="text-[#d4af37] text-xs mt-1 font-bold">R$ {i.price.toFixed(2)}</p>
                                                 <div className="flex items-center gap-4 mt-2">
-                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500">-</button>
-                                                    <span className="text-xs">{i.quantity}</span>
-                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500">+</button>
+                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500 px-2 border border-white/5">-</button>
+                                                    <span className="text-xs font-bold">{i.quantity}</span>
+                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500 px-2 border border-white/5">+</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -418,13 +466,13 @@
                                 {cart.length > 0 && (
                                     <div className="mt-auto pt-8 border-t border-white/5">
                                         <div className="flex justify-between mb-6">
-                                            <span className="text-gray-400 uppercase text-[10px]">Total</span>
-                                            <span className="font-bold text-xl">R$ {cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}</span>
+                                            <span className="text-gray-400 uppercase text-[10px] font-bold tracking-widest">Total do Pedido</span>
+                                            <span className="font-bold text-xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
                                             const text = `Olá Gold Paty! Desejo encomendar:\n\n${cart.map(i => `- ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-                                        }} className="w-full bg-[#25D366] text-white py-4 font-black uppercase text-[10px] tracking-widest">Finalizar Pedido</button>
+                                        }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.2em] shadow-lg hover:brightness-110 transition-all">Finalizar no WhatsApp</button>
                                     </div>
                                 )}
                             </div>
@@ -432,8 +480,7 @@
                     )}
 
                     <footer className="py-20 text-center border-t border-white/5 opacity-50">
-                        <p className="text-[8px] tracking-[0.4em] uppercase">Gold Paty © Boutique de Luxo Digital</p>
-                        {isEditMode && <button onClick={() => {setIsEditMode(false); setIsCatalogOpen(false);}} className="mt-4 text-red-900 text-[8px] uppercase font-bold tracking-widest hover:text-red-500 transition-colors">Sair do Modo Gestão</button>}
+                        <p className="text-[8px] tracking-[0.4em] uppercase font-bold">Gold Paty © Boutique de Luxo Digital</p>
                     </footer>
                 </div>
             );
