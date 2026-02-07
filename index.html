@@ -80,10 +80,11 @@
         .image-upload-area {
             border: 2px dashed rgba(212, 175, 55, 0.3);
             border-radius: 8px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            height: 100%;
         }
         .image-upload-area:hover {
             border-color: #d4af37;
@@ -91,15 +92,15 @@
         }
 
         .dot-indicator {
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: rgba(255,255,255,0.3);
             transition: all 0.3s;
         }
         .dot-indicator.active {
             background: #d4af37;
-            width: 12px;
+            width: 10px;
             border-radius: 10px;
         }
     </style>
@@ -127,13 +128,13 @@
             CONJUNTOS: 'Conjuntos'
         };
 
-        // Componente de Card de Produto com Carrossel Local
         const ProductCard = ({ product, isEditMode, onEdit, onDelete, onAddToCart }) => {
             const [currentIdx, setCurrentIdx] = useState(0);
             const images = product.images || (product.image ? [product.image] : []);
 
             const handleNext = (e) => {
                 e.stopPropagation();
+                if (images.length <= 1) return;
                 setCurrentIdx((prev) => (prev + 1) % images.length);
             };
 
@@ -143,7 +144,7 @@
                         {images.length > 0 ? (
                             <img 
                                 src={images[currentIdx]} 
-                                onClick={images.length > 1 ? handleNext : null}
+                                onClick={handleNext}
                                 className={`w-full h-full object-cover transition-transform duration-700 cursor-pointer ${images.length > 1 ? 'hover:brightness-90' : ''}`} 
                                 alt={product.name} 
                                 loading="lazy" 
@@ -152,9 +153,8 @@
                             <div className="w-full h-full flex items-center justify-center text-gray-700 italic text-[10px]">Sem foto</div>
                         )}
                         
-                        {/* Indicadores de fotos */}
                         {images.length > 1 && (
-                            <div className="absolute top-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+                            <div className="absolute top-3 left-0 right-0 flex justify-center gap-1 pointer-events-none">
                                 {images.map((_, i) => (
                                     <div key={i} className={`dot-indicator ${i === currentIdx ? 'active' : ''}`} />
                                 ))}
@@ -197,7 +197,7 @@
                                 </div>
                                 <div className="flex items-center text-[7px] uppercase tracking-widest text-gray-500 mt-1">
                                     <span className={`status-dot ${isSyncing ? 'bg-[#d4af37] animate-pulse-sync' : (cloudStatus === 'online' ? 'bg-green-500' : 'bg-red-500')}`}></span>
-                                    {isSyncing ? 'Atualizando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
+                                    {isSyncing ? 'Salvando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
                                 </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
@@ -255,11 +255,11 @@
                         if (data.record && Array.isArray(data.record)) {
                             setProducts(data.record);
                             setCloudStatus('online');
-                            localStorage.setItem('gp_products_v3', JSON.stringify(data.record));
+                            localStorage.setItem('gp_products_v4', JSON.stringify(data.record));
                         }
                     }
                 } catch (e) {
-                    const local = localStorage.getItem('gp_products_v3');
+                    const local = localStorage.getItem('gp_products_v4');
                     if (local) setProducts(JSON.parse(local));
                     setCloudStatus('offline');
                 }
@@ -284,13 +284,13 @@
                     });
                     
                     if (res.ok) {
-                        localStorage.setItem('gp_products_v3', JSON.stringify(updatedList));
+                        localStorage.setItem('gp_products_v4', JSON.stringify(updatedList));
                         setCloudStatus('online');
                     } else {
                         alert("Não foi possível salvar na nuvem.");
                     }
                 } catch (e) { 
-                    alert("Erro de conexão ao salvar.");
+                    alert("Erro de conexão.");
                 }
                 setIsSyncing(false);
             };
@@ -304,8 +304,8 @@
                         img.src = event.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 600; // Reduzi um pouco para compensar as 3 fotos
-                            const MAX_HEIGHT = 800;
+                            const MAX_WIDTH = 550; // Otimizado para 4 fotos
+                            const MAX_HEIGHT = 750;
                             let width = img.width;
                             let height = img.height;
 
@@ -325,7 +325,7 @@
                             canvas.height = height;
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.65); // 65% de qualidade
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.60); // 60% qualidade para manter bin leve
                             resolve(dataUrl);
                         };
                     };
@@ -336,9 +336,11 @@
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
                 
-                const remainingSlots = 3 - form.images.length;
+                const currentImagesCount = form.images.length;
+                const remainingSlots = 4 - currentImagesCount;
+                
                 if (remainingSlots <= 0) {
-                    alert("Limite de 3 fotos atingido.");
+                    alert("Limite de 4 fotos por peça atingido.");
                     return;
                 }
 
@@ -351,7 +353,7 @@
                     images: [...prev.images, ...processed]
                 }));
                 setIsSyncing(false);
-                e.target.value = ''; // Reset input
+                e.target.value = ''; 
             };
 
             const removeImage = (index) => {
@@ -386,12 +388,11 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Por favor, adicione pelo menos uma foto.");
+                if (form.images.length === 0) return alert("Adicione pelo menos uma foto.");
 
                 const productData = { 
                     ...form, 
                     price: parseFloat(form.price),
-                    // Compatibilidade retroativa caso existam dados antigos
                     image: form.images[0] 
                 };
 
@@ -411,7 +412,7 @@
             };
 
             const handleDelete = async (id) => {
-                if (confirm("Confirmar exclusão definitiva?")) {
+                if (confirm("Confirmar exclusão definitiva do catálogo?")) {
                     const newList = products.filter(p => p.id !== id);
                     setProducts(newList);
                     await syncToCloud(newList);
@@ -449,8 +450,8 @@
                                     <h2 className="text-7xl md:text-9xl font-serif lux-3d-title">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70">Luxo em Semi-Joias</p>
-                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Abrir Catálogo</button>
+                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Semi-Joias de Alto Padrão</p>
+                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Explorar Coleção</button>
                             </div>
                         </header>
                     ) : (
@@ -463,8 +464,8 @@
                                 </div>
                                 <div className="flex items-center gap-4 w-full md:w-auto">
                                     <input type="text" placeholder="BUSCAR PEÇA..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64 transition-all" />
-                                    <button onClick={loadDataFromCloud} className={`p-2 rounded-full border border-white/10 hover:border-[#d4af37] transition-all ${isSyncing ? 'opacity-50' : ''}`}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#d4af37]' : ''}`}>
+                                    <button onClick={loadDataFromCloud} className="p-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#d4af37]' : 'text-gray-500'}`}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                                         </svg>
                                     </button>
@@ -473,7 +474,7 @@
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
                                 {filtered.length === 0 ? (
-                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">Nenhuma joia encontrada.</div>
+                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">Nenhuma joia disponível.</div>
                                 ) : filtered.map(p => (
                                     <ProductCard 
                                         key={p.id} 
@@ -507,33 +508,33 @@
                             <div className="absolute inset-0 bg-black/98" onClick={() => setIsAdminModalOpen(false)} />
                             <div className="relative bg-[#0d0d0d] border border-[#d4af37]/30 w-full max-w-2xl p-8 shadow-2xl animate-fade-in max-h-[95vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-8">
-                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Peça' : 'Nova Peça'}</h3>
-                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-500 text-3xl hover:text-white">&times;</button>
+                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Joia' : 'Nova Joia'}</h3>
+                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-500 text-3xl">&times;</button>
                                 </div>
                                 
                                 <form onSubmit={handleSaveProduct} className="space-y-6">
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-bold">Fotos (Até 3 fotos)</label>
-                                        <div className="grid grid-cols-3 gap-4 mb-4">
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Álbum da Peça (Máximo 4 fotos)</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                                             {form.images.map((img, idx) => (
-                                                <div key={idx} className="relative aspect-[3/4] border border-white/10 rounded-sm overflow-hidden group">
+                                                <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-gray-900 rounded overflow-hidden group">
                                                     <img src={img} className="w-full h-full object-cover" />
                                                     <button 
                                                         type="button"
                                                         onClick={() => removeImage(idx)}
-                                                        className="absolute top-1 right-1 bg-red-900 text-white w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-[10px]"
+                                                        className="absolute top-1 right-1 bg-red-900/90 text-white w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                                                     >
                                                         &times;
                                                     </button>
                                                 </div>
                                             ))}
-                                            {form.images.length < 3 && (
+                                            {form.images.length < 4 && (
                                                 <div 
-                                                    className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2"
+                                                    className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2 bg-white/5"
                                                     onClick={() => fileInputRef.current.click()}
                                                 >
-                                                    <svg className="w-6 h-6 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
-                                                    <span className="text-[8px] uppercase font-black tracking-tighter">Adicionar</span>
+                                                    <svg className="w-5 h-5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" /></svg>
+                                                    <span className="text-[8px] uppercase font-black">Subir Foto</span>
                                                 </div>
                                             )}
                                         </div>
@@ -541,25 +542,25 @@
                                     </div>
 
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Nome da Joia</label>
-                                        <input className="admin-input" placeholder="Ex: Brinco Argola Banhada a Ouro" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Título do Produto</label>
+                                        <input className="admin-input" placeholder="Ex: Conjunto Riviera Gold" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Valor (R$)</label>
+                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Preço de Venda</label>
                                             <input type="number" step="0.01" className="admin-input" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
                                         </div>
                                         <div>
-                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Categoria</label>
+                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Coleção</label>
                                             <select className="admin-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                                                 {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] disabled:opacity-50 shadow-xl">
-                                        {isSyncing ? "Processando..." : "Salvar na Nuvem"}
+                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] shadow-xl disabled:opacity-50">
+                                        {isSyncing ? "Processando..." : (editingProduct ? "Confirmar Alterações" : "Publicar no Catálogo")}
                                     </button>
                                 </form>
                             </div>
@@ -568,32 +569,32 @@
 
                     {showPasswordModal && (
                         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/98">
-                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-6 text-center">
-                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Segurança</h3>
-                                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Acesso Restrito</p>
+                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-6 text-center animate-fade-in">
+                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Painel Mestre</h3>
+                                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Acesso apenas para administradores</p>
                                 <input type="password" autoFocus className="admin-input text-center text-xl tracking-widest" placeholder="••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                                <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Autenticar</button>
-                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase hover:text-white">Voltar</button>
+                                <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Entrar</button>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Cancelar</button>
                             </form>
                         </div>
                     )}
 
                     {isCartOpen && (
                         <div className="fixed inset-0 z-[200] flex justify-end">
-                            <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
-                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-[#d4af37]/20 p-8 shadow-2xl">
+                            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
+                            <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-[#d4af37]/20 p-8">
                                 <div className="flex justify-between items-center mb-10">
-                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase tracking-widest">Minha Escolha</h3>
+                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase tracking-widest">Minha Sacola</h3>
                                     <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl font-light hover:text-white">&times;</button>
                                 </div>
                                 <div className="flex-grow overflow-y-auto space-y-8 pr-2">
                                     {cart.length === 0 ? (
-                                        <div className="text-center mt-32 text-gray-600 italic font-serif">Sua sacola está vazia.</div>
+                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Sua sacola está vazia.</div>
                                     ) : cart.map(i => (
                                         <div key={i.id} className="flex gap-5 border-b border-white/5 pb-6">
-                                            <img src={i.images?.[0] || i.image} className="w-20 h-24 object-cover shadow-lg" />
+                                            <img src={i.images?.[0] || i.image} className="w-20 h-24 object-cover shadow-xl border border-white/5" />
                                             <div className="flex-grow">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1">{i.name}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest mb-1">{i.name}</p>
                                                 <p className="text-[#d4af37] text-sm font-bold">R$ {parseFloat(i.price).toFixed(2)}</p>
                                                 <div className="flex items-center gap-5 mt-4">
                                                     <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500 w-6 h-6 border border-white/10 flex items-center justify-center hover:text-[#d4af37]">-</button>
@@ -607,14 +608,14 @@
                                 {cart.length > 0 && (
                                     <div className="mt-auto pt-8 border-t border-white/10">
                                         <div className="flex justify-between mb-8">
-                                            <span className="text-gray-500 uppercase text-[10px] font-black tracking-[0.2em]">Total</span>
+                                            <span className="text-gray-500 uppercase text-[10px] font-black tracking-[0.2em]">Total Estimado</span>
                                             <span className="font-bold text-2xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
-                                            const text = `Olá Gold Paty! Gostaria de consultar:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
+                                            const text = `Olá Gold Paty! Gostaria de encomendar estas peças:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
                                         }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3">
-                                            <span>Enviar Pedido</span>
+                                            <span>Enviar para o WhatsApp</span>
                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                         </button>
                                     </div>
@@ -624,7 +625,7 @@
                     )}
 
                     <footer className="py-20 text-center border-t border-white/5 opacity-40">
-                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty Boutique Digital • Curadoria Exclusiva</p>
+                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty Boutique Digital • Curadoria Premium</p>
                     </footer>
                 </div>
             );
