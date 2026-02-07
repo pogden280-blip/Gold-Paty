@@ -73,14 +73,14 @@
         .animate-slide-left { animation: slideLeft 0.3s ease-out forwards; }
         @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
 
         .image-upload-area {
             border: 2px dashed rgba(212, 175, 55, 0.3);
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
@@ -130,7 +130,6 @@
 
         const ProductCard = ({ product, isEditMode, onEdit, onDelete, onAddToCart }) => {
             const [currentIdx, setCurrentIdx] = useState(0);
-            // Prioriza o array 'images', se não houver, tenta o campo antigo 'image'
             const images = product.images || (product.image ? [product.image] : []);
 
             const handleNext = (e) => {
@@ -189,7 +188,6 @@
                             className="relative cursor-pointer select-none"
                             onMouseDown={onLongPressStart} onMouseUp={onLongPressEnd} onMouseLeave={onLongPressEnd}
                             onTouchStart={onLongPressStart} onTouchEnd={onLongPressEnd}
-                            onContextMenu={(e) => e.preventDefault()}
                         >
                             <div className="flex flex-col items-start">
                                 <div className="flex items-center gap-2">
@@ -254,22 +252,25 @@
                     if (res.ok) {
                         const data = await res.json();
                         if (data.record && Array.isArray(data.record)) {
-                            setProducts(data.record);
+                            // Limpeza de campos legados ao carregar para poupar espaço
+                            const cleaned = data.record.map(p => {
+                                const { image, ...rest } = p;
+                                return rest;
+                            });
+                            setProducts(cleaned);
                             setCloudStatus('online');
-                            localStorage.setItem('gp_products_v5', JSON.stringify(data.record));
+                            localStorage.setItem('gp_products_v6', JSON.stringify(cleaned));
                         }
                     }
                 } catch (e) {
-                    const local = localStorage.getItem('gp_products_v5');
+                    const local = localStorage.getItem('gp_products_v6');
                     if (local) setProducts(JSON.parse(local));
                     setCloudStatus('offline');
                 }
                 setIsSyncing(false);
             };
 
-            useEffect(() => {
-                loadDataFromCloud();
-            }, []);
+            useEffect(() => { loadDataFromCloud(); }, []);
 
             const syncToCloud = async (updatedList) => {
                 setIsSyncing(true);
@@ -285,15 +286,15 @@
                     });
                     
                     if (res.ok) {
-                        localStorage.setItem('gp_products_v5', JSON.stringify(updatedList));
+                        localStorage.setItem('gp_products_v6', JSON.stringify(updatedList));
                         setCloudStatus('online');
                     } else {
                         const errorData = await res.json();
                         console.error("Erro Nuvem:", errorData);
-                        alert(`Erro ao salvar na nuvem: ${res.status === 413 ? "Limite de tamanho excedido. Tente usar menos fotos ou fotos menores." : "Erro de conexão."}`);
+                        alert(`Erro de Tamanho: O catálogo está muito pesado. Tente excluir peças antigas ou usar menos fotos nesta peça.`);
                     }
                 } catch (e) { 
-                    alert("Erro de conexão ao servidor.");
+                    alert("Falha na conexão.");
                 }
                 setIsSyncing(false);
             };
@@ -307,9 +308,9 @@
                         img.src = event.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            // Redução drástica para caber no limite do bin (400px é o ideal para celular)
-                            const MAX_WIDTH = 400; 
-                            const MAX_HEIGHT = 550;
+                            // OTMIZAÇÃO RADICAL: 300px é o ponto ideal para economia extrema sem perder beleza no celular
+                            const MAX_WIDTH = 300; 
+                            const MAX_HEIGHT = 450;
                             let width = img.width;
                             let height = img.height;
 
@@ -329,8 +330,8 @@
                             canvas.height = height;
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
-                            // Qualidade 45% para economizar MUITO espaço mantendo visual aceitável
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.45); 
+                            // Qualidade 30% gera arquivos de ~10KB a ~15KB (Antes eram 50KB+)
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.30); 
                             resolve(dataUrl);
                         };
                     };
@@ -341,31 +342,20 @@
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
                 
-                const currentImagesCount = form.images.length;
-                const remainingSlots = 4 - currentImagesCount;
-                
-                if (remainingSlots <= 0) {
-                    alert("Limite de 4 fotos atingido.");
-                    return;
-                }
+                const remaining = 4 - form.images.length;
+                if (remaining <= 0) return alert("Máximo 4 fotos atingido.");
 
                 setIsSyncing(true);
-                const toProcess = files.slice(0, remainingSlots);
+                const toProcess = files.slice(0, remaining);
                 const processed = await Promise.all(toProcess.map(file => processImage(file)));
                 
-                setForm(prev => ({
-                    ...prev,
-                    images: [...prev.images, ...processed]
-                }));
+                setForm(prev => ({ ...prev, images: [...prev.images, ...processed] }));
                 setIsSyncing(false);
                 e.target.value = ''; 
             };
 
             const removeImage = (index) => {
-                setForm(prev => ({
-                    ...prev,
-                    images: prev.images.filter((_, i) => i !== index)
-                }));
+                setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
             };
 
             const handleLongPressStart = () => {
@@ -395,7 +385,6 @@
                 e.preventDefault();
                 if (form.images.length === 0) return alert("Adicione ao menos uma foto.");
 
-                // Removi campos duplicados para economizar espaço no JSON
                 const productData = { 
                     name: form.name,
                     price: parseFloat(form.price),
@@ -457,7 +446,7 @@
                                     <h2 className="text-7xl md:text-9xl font-serif lux-3d-title">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Joias com Alma</p>
+                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Catálogo Ultra Otimizado</p>
                                 <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Abrir Catálogo</button>
                             </div>
                         </header>
@@ -483,28 +472,7 @@
                                 {filtered.length === 0 ? (
                                     <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">{isSyncing ? "Conectando..." : "Coleção em breve."}</div>
                                 ) : filtered.map(p => (
-                                    <ProductCard 
-                                        key={p.id} 
-                                        product={p} 
-                                        isEditMode={isEditMode} 
-                                        onEdit={(prod) => { 
-                                            setEditingProduct(prod); 
-                                            setForm({
-                                                ...prod,
-                                                images: prod.images || (prod.image ? [prod.image] : [])
-                                            }); 
-                                            setIsAdminModalOpen(true); 
-                                        }} 
-                                        onDelete={handleDelete}
-                                        onAddToCart={(prod) => {
-                                            setCart(prev => {
-                                                const ex = prev.find(i => i.id === prod.id);
-                                                if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i);
-                                                return [...prev, {...prod, quantity: 1}];
-                                            });
-                                            setIsCartOpen(true);
-                                        }}
-                                    />
+                                    <ProductCard key={p.id} product={p} isEditMode={isEditMode} onEdit={(prod) => { setEditingProduct(prod); setForm({ ...prod, images: prod.images || [] }); setIsAdminModalOpen(true); }} onDelete={handleDelete} onAddToCart={(prod) => { setCart(prev => { const ex = prev.find(i => i.id === prod.id); if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, {...prod, quantity: 1}]; }); setIsCartOpen(true); }} />
                                 ))}
                             </div>
                         </main>
@@ -521,27 +489,18 @@
                                 
                                 <form onSubmit={handleSaveProduct} className="space-y-6">
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Fotos (Otimizadas para Nuvem - Máx 4)</label>
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Álbum (Máx 4 fotos pequenas)</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                                             {form.images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-gray-900 rounded overflow-hidden group">
                                                     <img src={img} className="w-full h-full object-cover" />
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => removeImage(idx)}
-                                                        className="absolute top-1 right-1 bg-red-900/90 text-white w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                                    >
-                                                        &times;
-                                                    </button>
+                                                    <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-900/90 text-white w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs">&times;</button>
                                                 </div>
                                             ))}
                                             {form.images.length < 4 && (
-                                                <div 
-                                                    className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2 bg-white/5"
-                                                    onClick={() => fileInputRef.current.click()}
-                                                >
+                                                <div className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2 bg-white/5" onClick={() => fileInputRef.current.click()}>
                                                     <svg className="w-5 h-5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" /></svg>
-                                                    <span className="text-[8px] uppercase font-black">Adicionar</span>
+                                                    <span className="text-[8px] uppercase font-black">Fotos</span>
                                                 </div>
                                             )}
                                         </div>
@@ -567,7 +526,7 @@
                                     </div>
 
                                     <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] shadow-xl disabled:opacity-50">
-                                        {isSyncing ? "Processando..." : (editingProduct ? "Atualizar" : "Salvar na Nuvem")}
+                                        {isSyncing ? "Comprimindo..." : "Salvar Agora"}
                                     </button>
                                 </form>
                             </div>
@@ -577,10 +536,10 @@
                     {showPasswordModal && (
                         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/98">
                             <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-6 text-center animate-fade-in">
-                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Segurança</h3>
+                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Painel Mestre</h3>
                                 <input type="password" autoFocus className="admin-input text-center text-xl tracking-widest" placeholder="••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
                                 <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Entrar</button>
-                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Voltar</button>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Sair</button>
                             </form>
                         </div>
                     )}
@@ -595,10 +554,10 @@
                                 </div>
                                 <div className="flex-grow overflow-y-auto space-y-8 pr-2">
                                     {cart.length === 0 ? (
-                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Sacola vazia.</div>
+                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Vazia.</div>
                                     ) : cart.map(i => (
                                         <div key={i.id} className="flex gap-5 border-b border-white/5 pb-6">
-                                            <img src={i.images?.[0] || i.image} className="w-20 h-24 object-cover shadow-xl border border-white/5" />
+                                            <img src={i.images?.[0]} className="w-20 h-24 object-cover shadow-xl border border-white/5" />
                                             <div className="flex-grow">
                                                 <p className="text-[10px] font-black uppercase tracking-widest mb-1">{i.name}</p>
                                                 <p className="text-[#d4af37] text-sm font-bold">R$ {parseFloat(i.price).toFixed(2)}</p>
@@ -621,7 +580,7 @@
                                             const text = `Olá Gold Paty! Escolhi estas joias:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
                                         }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3">
-                                            <span>Enviar WhatsApp</span>
+                                            <span>Enviar Pedido</span>
                                         </button>
                                     </div>
                                 )}
@@ -630,7 +589,7 @@
                     )}
 
                     <footer className="py-20 text-center border-t border-white/5 opacity-40">
-                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty • Boutique Premium</p>
+                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty • Boutique Digital</p>
                     </footer>
                 </div>
             );
