@@ -130,6 +130,7 @@
 
         const ProductCard = ({ product, isEditMode, onEdit, onDelete, onAddToCart }) => {
             const [currentIdx, setCurrentIdx] = useState(0);
+            // Prioriza o array 'images', se não houver, tenta o campo antigo 'image'
             const images = product.images || (product.image ? [product.image] : []);
 
             const handleNext = (e) => {
@@ -197,7 +198,7 @@
                                 </div>
                                 <div className="flex items-center text-[7px] uppercase tracking-widest text-gray-500 mt-1">
                                     <span className={`status-dot ${isSyncing ? 'bg-[#d4af37] animate-pulse-sync' : (cloudStatus === 'online' ? 'bg-green-500' : 'bg-red-500')}`}></span>
-                                    {isSyncing ? 'Salvando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
+                                    {isSyncing ? 'Processando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
                                 </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
@@ -255,11 +256,11 @@
                         if (data.record && Array.isArray(data.record)) {
                             setProducts(data.record);
                             setCloudStatus('online');
-                            localStorage.setItem('gp_products_v4', JSON.stringify(data.record));
+                            localStorage.setItem('gp_products_v5', JSON.stringify(data.record));
                         }
                     }
                 } catch (e) {
-                    const local = localStorage.getItem('gp_products_v4');
+                    const local = localStorage.getItem('gp_products_v5');
                     if (local) setProducts(JSON.parse(local));
                     setCloudStatus('offline');
                 }
@@ -284,13 +285,15 @@
                     });
                     
                     if (res.ok) {
-                        localStorage.setItem('gp_products_v4', JSON.stringify(updatedList));
+                        localStorage.setItem('gp_products_v5', JSON.stringify(updatedList));
                         setCloudStatus('online');
                     } else {
-                        alert("Não foi possível salvar na nuvem.");
+                        const errorData = await res.json();
+                        console.error("Erro Nuvem:", errorData);
+                        alert(`Erro ao salvar na nuvem: ${res.status === 413 ? "Limite de tamanho excedido. Tente usar menos fotos ou fotos menores." : "Erro de conexão."}`);
                     }
                 } catch (e) { 
-                    alert("Erro de conexão.");
+                    alert("Erro de conexão ao servidor.");
                 }
                 setIsSyncing(false);
             };
@@ -304,8 +307,9 @@
                         img.src = event.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 550; // Otimizado para 4 fotos
-                            const MAX_HEIGHT = 750;
+                            // Redução drástica para caber no limite do bin (400px é o ideal para celular)
+                            const MAX_WIDTH = 400; 
+                            const MAX_HEIGHT = 550;
                             let width = img.width;
                             let height = img.height;
 
@@ -325,7 +329,8 @@
                             canvas.height = height;
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.60); // 60% qualidade para manter bin leve
+                            // Qualidade 45% para economizar MUITO espaço mantendo visual aceitável
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.45); 
                             resolve(dataUrl);
                         };
                     };
@@ -340,7 +345,7 @@
                 const remainingSlots = 4 - currentImagesCount;
                 
                 if (remainingSlots <= 0) {
-                    alert("Limite de 4 fotos por peça atingido.");
+                    alert("Limite de 4 fotos atingido.");
                     return;
                 }
 
@@ -388,12 +393,14 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Adicione pelo menos uma foto.");
+                if (form.images.length === 0) return alert("Adicione ao menos uma foto.");
 
+                // Removi campos duplicados para economizar espaço no JSON
                 const productData = { 
-                    ...form, 
+                    name: form.name,
                     price: parseFloat(form.price),
-                    image: form.images[0] 
+                    category: form.category,
+                    images: form.images
                 };
 
                 let newList;
@@ -412,7 +419,7 @@
             };
 
             const handleDelete = async (id) => {
-                if (confirm("Confirmar exclusão definitiva do catálogo?")) {
+                if (confirm("Excluir definitivamente?")) {
                     const newList = products.filter(p => p.id !== id);
                     setProducts(newList);
                     await syncToCloud(newList);
@@ -450,8 +457,8 @@
                                     <h2 className="text-7xl md:text-9xl font-serif lux-3d-title">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Semi-Joias de Alto Padrão</p>
-                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Explorar Coleção</button>
+                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Joias com Alma</p>
+                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Abrir Catálogo</button>
                             </div>
                         </header>
                     ) : (
@@ -474,7 +481,7 @@
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
                                 {filtered.length === 0 ? (
-                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">Nenhuma joia disponível.</div>
+                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">{isSyncing ? "Conectando..." : "Coleção em breve."}</div>
                                 ) : filtered.map(p => (
                                     <ProductCard 
                                         key={p.id} 
@@ -508,13 +515,13 @@
                             <div className="absolute inset-0 bg-black/98" onClick={() => setIsAdminModalOpen(false)} />
                             <div className="relative bg-[#0d0d0d] border border-[#d4af37]/30 w-full max-w-2xl p-8 shadow-2xl animate-fade-in max-h-[95vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-8">
-                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Joia' : 'Nova Joia'}</h3>
+                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Peça' : 'Nova Peça'}</h3>
                                     <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-500 text-3xl">&times;</button>
                                 </div>
                                 
                                 <form onSubmit={handleSaveProduct} className="space-y-6">
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Álbum da Peça (Máximo 4 fotos)</label>
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Fotos (Otimizadas para Nuvem - Máx 4)</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                                             {form.images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-gray-900 rounded overflow-hidden group">
@@ -534,7 +541,7 @@
                                                     onClick={() => fileInputRef.current.click()}
                                                 >
                                                     <svg className="w-5 h-5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" /></svg>
-                                                    <span className="text-[8px] uppercase font-black">Subir Foto</span>
+                                                    <span className="text-[8px] uppercase font-black">Adicionar</span>
                                                 </div>
                                             )}
                                         </div>
@@ -542,13 +549,13 @@
                                     </div>
 
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Título do Produto</label>
-                                        <input className="admin-input" placeholder="Ex: Conjunto Riviera Gold" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Nome da Joia</label>
+                                        <input className="admin-input" placeholder="Ex: Brinco Pérola" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Preço de Venda</label>
+                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Preço</label>
                                             <input type="number" step="0.01" className="admin-input" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
                                         </div>
                                         <div>
@@ -560,7 +567,7 @@
                                     </div>
 
                                     <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] shadow-xl disabled:opacity-50">
-                                        {isSyncing ? "Processando..." : (editingProduct ? "Confirmar Alterações" : "Publicar no Catálogo")}
+                                        {isSyncing ? "Processando..." : (editingProduct ? "Atualizar" : "Salvar na Nuvem")}
                                     </button>
                                 </form>
                             </div>
@@ -570,11 +577,10 @@
                     {showPasswordModal && (
                         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/98">
                             <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-6 text-center animate-fade-in">
-                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Painel Mestre</h3>
-                                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Acesso apenas para administradores</p>
+                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Segurança</h3>
                                 <input type="password" autoFocus className="admin-input text-center text-xl tracking-widest" placeholder="••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
                                 <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Entrar</button>
-                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Cancelar</button>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Voltar</button>
                             </form>
                         </div>
                     )}
@@ -589,7 +595,7 @@
                                 </div>
                                 <div className="flex-grow overflow-y-auto space-y-8 pr-2">
                                     {cart.length === 0 ? (
-                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Sua sacola está vazia.</div>
+                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Sacola vazia.</div>
                                     ) : cart.map(i => (
                                         <div key={i.id} className="flex gap-5 border-b border-white/5 pb-6">
                                             <img src={i.images?.[0] || i.image} className="w-20 h-24 object-cover shadow-xl border border-white/5" />
@@ -608,15 +614,14 @@
                                 {cart.length > 0 && (
                                     <div className="mt-auto pt-8 border-t border-white/10">
                                         <div className="flex justify-between mb-8">
-                                            <span className="text-gray-500 uppercase text-[10px] font-black tracking-[0.2em]">Total Estimado</span>
+                                            <span className="text-gray-500 uppercase text-[10px] font-black tracking-[0.2em]">Total</span>
                                             <span className="font-bold text-2xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
-                                            const text = `Olá Gold Paty! Gostaria de encomendar estas peças:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
+                                            const text = `Olá Gold Paty! Escolhi estas joias:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
                                         }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3">
-                                            <span>Enviar para o WhatsApp</span>
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                            <span>Enviar WhatsApp</span>
                                         </button>
                                     </div>
                                 )}
@@ -625,7 +630,7 @@
                     )}
 
                     <footer className="py-20 text-center border-t border-white/5 opacity-40">
-                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty Boutique Digital • Curadoria Premium</p>
+                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty • Boutique Premium</p>
                     </footer>
                 </div>
             );
