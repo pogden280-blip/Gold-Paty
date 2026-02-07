@@ -76,6 +76,19 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+
+        .image-upload-area {
+            border: 2px dashed rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .image-upload-area:hover {
+            border-color: #d4af37;
+            background: rgba(212, 175, 55, 0.05);
+        }
     </style>
 </head>
 <body>
@@ -101,8 +114,6 @@
             CONJUNTOS: 'Conjuntos'
         };
 
-        const INITIAL_PRODUCTS = [];
-
         const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onOpenAdminModal, cloudStatus, isSyncing }) => {
             if (!isVisible) return null;
             return (
@@ -121,7 +132,7 @@
                                 </div>
                                 <div className="flex items-center text-[7px] uppercase tracking-widest text-gray-500 mt-1">
                                     <span className={`status-dot ${isSyncing ? 'bg-[#d4af37] animate-pulse-sync' : (cloudStatus === 'online' ? 'bg-green-500' : 'bg-red-500')}`}></span>
-                                    {isSyncing ? 'Gravando Alterações...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
+                                    {isSyncing ? 'Atualizando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
                                 </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
@@ -144,7 +155,7 @@
         };
 
         const App = () => {
-            const [products, setProducts] = useState(INITIAL_PRODUCTS);
+            const [products, setProducts] = useState([]);
             const [isCatalogOpen, setIsCatalogOpen] = useState(false);
             const [selectedCategory, setSelectedCategory] = useState(Category.TODOS);
             const [cart, setCart] = useState([]);
@@ -161,6 +172,7 @@
             const [cloudStatus, setCloudStatus] = useState('offline');
 
             const pressTimer = useRef(null);
+            const fileInputRef = useRef(null);
 
             const loadDataFromCloud = async () => {
                 setIsSyncing(true);
@@ -210,12 +222,62 @@
                         localStorage.setItem('gp_products_v2', JSON.stringify(updatedList));
                         setCloudStatus('online');
                     } else {
-                        alert("Não foi possível salvar na nuvem. Verifique a internet.");
+                        alert("Erro ao sincronizar. Verifique a internet.");
                     }
                 } catch (e) { 
-                    alert("Erro de conexão ao tentar salvar.");
+                    alert("Erro de conexão.");
                 }
                 setIsSyncing(false);
+            };
+
+            // FUNÇÃO PARA REDIMENSIONAR E COMPRIMIR IMAGEM
+            const processImage = (file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 800;
+                            const MAX_HEIGHT = 1000;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > height) {
+                                if (width > MAX_WIDTH) {
+                                    height *= MAX_WIDTH / width;
+                                    width = MAX_WIDTH;
+                                }
+                            } else {
+                                if (height > MAX_HEIGHT) {
+                                    width *= MAX_HEIGHT / height;
+                                    height = MAX_HEIGHT;
+                                }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            // Comprime para JPEG com 70% de qualidade para economizar espaço no bin
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                            resolve(dataUrl);
+                        };
+                    };
+                });
+            };
+
+            const handleFileChange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setIsSyncing(true);
+                    const compressedBase64 = await processImage(file);
+                    setForm({ ...form, image: compressedBase64 });
+                    setIsSyncing(false);
+                }
             };
 
             const handleLongPressStart = () => {
@@ -243,8 +305,9 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
+                if (!form.image) return alert("Por favor, adicione uma foto da peça.");
+
                 const productData = { ...form, price: parseFloat(form.price) };
-                
                 let newList;
                 if (editingProduct) {
                     newList = products.map(p => p.id === editingProduct.id ? { ...productData, id: p.id } : p);
@@ -323,7 +386,7 @@
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
                                 {filtered.length === 0 ? (
-                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">{isSyncing ? 'Consultando nuvem...' : 'Nenhuma joia encontrada nesta coleção.'}</div>
+                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">{isSyncing ? 'Conectando...' : 'Nenhuma joia encontrada.'}</div>
                                 ) : filtered.map(p => (
                                     <div key={p.id} className="group bg-[#111] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/40 relative shadow-lg">
                                         <div className="aspect-[3/4] overflow-hidden bg-gray-900">
@@ -365,6 +428,24 @@
                                 </div>
                                 
                                 <form onSubmit={handleSaveProduct} className="space-y-6">
+                                    <div className="flex flex-col items-center">
+                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-bold w-full">Foto da Peça</label>
+                                        <div 
+                                            className="image-upload-area w-full relative h-48 flex items-center justify-center"
+                                            onClick={() => fileInputRef.current.click()}
+                                        >
+                                            {form.image ? (
+                                                <img src={form.image} className="absolute inset-0 w-full h-full object-contain p-2" />
+                                            ) : (
+                                                <div className="text-gray-500 flex flex-col items-center">
+                                                    <svg className="w-10 h-10 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                                    <span className="text-[10px] uppercase font-black tracking-widest">Clique para subir foto</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                                    </div>
+
                                     <div>
                                         <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Título da Joia</label>
                                         <input className="admin-input" placeholder="Ex: Brinco Argola Banhada a Ouro" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
@@ -383,19 +464,14 @@
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Link da Foto (URL)</label>
-                                        <input className="admin-input" placeholder="https://..." value={form.image} onChange={e => setForm({...form, image: e.target.value})} required />
-                                    </div>
-
                                     <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] disabled:opacity-50 hover:brightness-110 transition-all shadow-xl">
-                                        {isSyncing ? "Salvando na Nuvem..." : (editingProduct ? "Salvar Alterações" : "Adicionar ao Catálogo")}
+                                        {isSyncing ? "Processando..." : (editingProduct ? "Salvar Alterações" : "Adicionar ao Catálogo")}
                                     </button>
                                 </form>
                                 
                                 <div className="mt-10 pt-8 border-t border-white/5 text-center">
-                                    <p className="text-[9px] text-gray-600 uppercase tracking-widest mb-4 font-medium italic">As alterações são permanentes em todos os aparelhos.</p>
-                                    <button onClick={() => {setIsEditMode(false); setIsCatalogOpen(false); setIsAdminModalOpen(false);}} className="text-red-900 text-[9px] font-black uppercase tracking-widest hover:text-red-600 transition-colors">Encerrar Sessão Administrativa</button>
+                                    <p className="text-[9px] text-gray-600 uppercase tracking-widest mb-4 font-medium italic">Upload direto: A imagem será salva na nuvem da Gold Paty.</p>
+                                    <button onClick={() => {setIsEditMode(false); setIsCatalogOpen(false); setIsAdminModalOpen(false);}} className="text-red-900 text-[9px] font-black uppercase tracking-widest hover:text-red-600 transition-colors">Encerrar Sessão</button>
                                 </div>
                             </div>
                         </div>
@@ -449,7 +525,7 @@
                                             <span className="font-bold text-2xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
-                                            const text = `Olá Gold Paty! Gostaria de consultar a disponibilidade destas peças:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total do Pedido: R$ ${cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}*`;
+                                            const text = `Olá Gold Paty! Gostaria de consultar a disponibilidade:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(b.price*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
                                         }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] shadow-2xl hover:brightness-110 transition-all flex items-center justify-center gap-3">
                                             <span>Enviar Pedido</span>
