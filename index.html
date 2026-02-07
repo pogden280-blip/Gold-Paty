@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gold Paty | Catálogo Digital</title>
+    <title>Gold Paty | Boutique Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -92,16 +92,28 @@
         }
 
         .dot-indicator {
-            width: 4px;
-            height: 4px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            transition: all 0.3s;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .dot-indicator.active {
             background: #d4af37;
-            width: 10px;
+            width: 14px;
             border-radius: 10px;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+        }
+        
+        .product-image-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        
+        .fade-img {
+            transition: opacity 0.4s ease-in-out;
         }
     </style>
 </head>
@@ -130,31 +142,35 @@
 
         const ProductCard = ({ product, isEditMode, onEdit, onDelete, onAddToCart }) => {
             const [currentIdx, setCurrentIdx] = useState(0);
-            const images = product.images || (product.image ? [product.image] : []);
+            const [isFading, setIsFading] = useState(false);
+            const images = product.images || [];
 
             const handleNext = (e) => {
                 e.stopPropagation();
                 if (images.length <= 1) return;
-                setCurrentIdx((prev) => (prev + 1) % images.length);
+                setIsFading(true);
+                setTimeout(() => {
+                    setCurrentIdx((prev) => (prev + 1) % images.length);
+                    setIsFading(false);
+                }, 150);
             };
 
             return (
-                <div className="group bg-[#111] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/40 relative shadow-lg">
-                    <div className="aspect-[3/4] overflow-hidden bg-gray-900 relative">
+                <div className="group bg-[#111] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/40 relative shadow-lg animate-fade-in">
+                    <div className="aspect-[3/4] overflow-hidden bg-gray-900 relative cursor-pointer" onClick={handleNext}>
                         {images.length > 0 ? (
                             <img 
                                 src={images[currentIdx]} 
-                                onClick={handleNext}
-                                className={`w-full h-full object-cover transition-transform duration-700 cursor-pointer ${images.length > 1 ? 'hover:brightness-90' : ''}`} 
+                                className={`w-full h-full object-cover fade-img ${isFading ? 'opacity-40' : 'opacity-100'}`} 
                                 alt={product.name} 
                                 loading="lazy" 
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-700 italic text-[10px]">Sem foto</div>
+                            <div className="w-full h-full flex items-center justify-center text-gray-700 italic text-[10px]">Sem imagem</div>
                         )}
                         
                         {images.length > 1 && (
-                            <div className="absolute top-3 left-0 right-0 flex justify-center gap-1 pointer-events-none">
+                            <div className="absolute top-4 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
                                 {images.map((_, i) => (
                                     <div key={i} className={`dot-indicator ${i === currentIdx ? 'active' : ''}`} />
                                 ))}
@@ -162,18 +178,21 @@
                         )}
 
                         {isEditMode ? (
-                            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                                <button onClick={() => onEdit(product)} className="bg-white text-black px-6 py-2 text-[9px] font-black uppercase tracking-widest w-2/3 hover:bg-[#d4af37] transition-colors">Editar Peça</button>
-                                <button onClick={() => onDelete(product.id)} className="bg-red-900 text-white px-6 py-2 text-[9px] font-black uppercase tracking-widest w-2/3 hover:bg-red-700 transition-colors">Excluir Peça</button>
+                            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-all backdrop-blur-[4px]">
+                                <button onClick={(e) => {e.stopPropagation(); onEdit(product);}} className="bg-white text-black px-8 py-2.5 text-[10px] font-black uppercase tracking-widest w-2/3 hover:bg-[#d4af37] transition-colors">Editar</button>
+                                <button onClick={(e) => {e.stopPropagation(); onDelete(product.id);}} className="bg-red-900 text-white px-8 py-2.5 text-[10px] font-black uppercase tracking-widest w-2/3 hover:bg-red-700 transition-colors">Excluir</button>
                             </div>
                         ) : (
-                            <button onClick={() => onAddToCart(product)} className="absolute bottom-4 left-4 right-4 bg-white text-black py-3 text-[9px] font-black uppercase tracking-widest opacity-0 translate-y-4 group-hover:translate-y-0 group-hover:opacity-100 transition-all hover:bg-[#d4af37]">Adicionar à Sacola</button>
+                            <button onClick={(e) => {e.stopPropagation(); onAddToCart(product);}} className="absolute bottom-5 left-5 right-5 bg-white text-black py-4 text-[10px] font-black uppercase tracking-widest opacity-0 translate-y-5 group-hover:translate-y-0 group-hover:opacity-100 transition-all hover:bg-[#d4af37]">Adicionar à Sacola</button>
                         )}
                     </div>
-                    <div className="p-5">
-                        <p className="text-[#d4af37] text-[9px] uppercase font-bold mb-1 tracking-widest">{product.category}</p>
-                        <h4 className="text-sm font-medium mb-1 truncate tracking-tight">{product.name}</h4>
-                        <p className="font-bold text-white/90">R$ {parseFloat(product.price).toFixed(2)}</p>
+                    <div className="p-6">
+                        <div className="flex justify-between items-start mb-1">
+                            <p className="text-[#d4af37] text-[9px] uppercase font-bold tracking-[0.2em]">{product.category}</p>
+                            {images.length > 1 && <span className="text-white/20 text-[8px] font-bold">1/{images.length}</span>}
+                        </div>
+                        <h4 className="text-sm font-medium mb-1 truncate tracking-tight text-white/90">{product.name}</h4>
+                        <p className="font-bold text-lg text-white">R$ {parseFloat(product.price).toFixed(2)}</p>
                     </div>
                 </div>
             );
@@ -182,7 +201,7 @@
         const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onOpenAdminModal, cloudStatus, isSyncing }) => {
             if (!isVisible) return null;
             return (
-                <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-[#d4af37]/30 py-4 px-6 shadow-xl">
+                <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-[#d4af37]/20 py-5 px-6 shadow-2xl">
                     <div className="flex justify-between items-center max-w-7xl mx-auto">
                         <div 
                             className="relative cursor-pointer select-none"
@@ -190,27 +209,27 @@
                             onTouchStart={onLongPressStart} onTouchEnd={onLongPressEnd}
                         >
                             <div className="flex flex-col items-start">
-                                <div className="flex items-center gap-2">
-                                    <h1 className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] text-[#d4af37] uppercase text-shadow-lg">Gold Paty</h1>
-                                    {isEditMode && <span className="bg-[#d4af37] text-black text-[8px] font-black px-2 py-0.5 rounded-full">ADM</span>}
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] text-[#d4af37] uppercase">Gold Paty</h1>
+                                    {isEditMode && <span className="bg-[#d4af37] text-black text-[8px] font-black px-2 py-0.5 rounded-sm">ADMIN</span>}
                                 </div>
                                 <div className="flex items-center text-[7px] uppercase tracking-widest text-gray-500 mt-1">
                                     <span className={`status-dot ${isSyncing ? 'bg-[#d4af37] animate-pulse-sync' : (cloudStatus === 'online' ? 'bg-green-500' : 'bg-red-500')}`}></span>
-                                    {isSyncing ? 'Processando...' : (cloudStatus === 'online' ? 'Sincronizado' : 'Offline')}
+                                    {isSyncing ? 'Atualizando...' : (cloudStatus === 'online' ? 'Conectado' : 'Modo Offline')}
                                 </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                         </div>
                         
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-5">
                             {isEditMode && (
-                                <button onClick={onOpenAdminModal} className="text-[9px] font-black uppercase tracking-widest text-[#d4af37] border border-[#d4af37] px-3 py-1 hover:bg-[#d4af37] hover:text-black transition-all">Painel Gestão</button>
+                                <button onClick={onOpenAdminModal} className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] border border-[#d4af37]/40 px-4 py-2 hover:bg-[#d4af37] hover:text-black transition-all">Novo Produto</button>
                             )}
-                            <button onClick={onOpenCart} className="relative p-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white">
+                            <button onClick={onOpenCart} className="relative p-2 group">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white group-hover:text-[#d4af37] transition-colors">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
                                 </svg>
-                                {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black">{cartCount}</span>}
+                                {cartCount > 0 && <span className="absolute -top-0 -right-0 bg-[#d4af37] text-black text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black ring-2 ring-black">{cartCount}</span>}
                             </button>
                         </div>
                     </div>
@@ -252,18 +271,13 @@
                     if (res.ok) {
                         const data = await res.json();
                         if (data.record && Array.isArray(data.record)) {
-                            // Limpeza de campos legados ao carregar para poupar espaço
-                            const cleaned = data.record.map(p => {
-                                const { image, ...rest } = p;
-                                return rest;
-                            });
-                            setProducts(cleaned);
+                            setProducts(data.record);
                             setCloudStatus('online');
-                            localStorage.setItem('gp_products_v6', JSON.stringify(cleaned));
+                            localStorage.setItem('gp_products_v7', JSON.stringify(data.record));
                         }
                     }
                 } catch (e) {
-                    const local = localStorage.getItem('gp_products_v6');
+                    const local = localStorage.getItem('gp_products_v7');
                     if (local) setProducts(JSON.parse(local));
                     setCloudStatus('offline');
                 }
@@ -286,15 +300,13 @@
                     });
                     
                     if (res.ok) {
-                        localStorage.setItem('gp_products_v6', JSON.stringify(updatedList));
+                        localStorage.setItem('gp_products_v7', JSON.stringify(updatedList));
                         setCloudStatus('online');
                     } else {
-                        const errorData = await res.json();
-                        console.error("Erro Nuvem:", errorData);
-                        alert(`Erro de Tamanho: O catálogo está muito pesado. Tente excluir peças antigas ou usar menos fotos nesta peça.`);
+                        alert("Limite Excedido: O catálogo está muito grande para salvar 4 fotos em cada peça. Tente remover uma foto ou excluir produtos antigos.");
                     }
                 } catch (e) { 
-                    alert("Falha na conexão.");
+                    alert("Erro de conexão.");
                 }
                 setIsSyncing(false);
             };
@@ -308,9 +320,9 @@
                         img.src = event.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            // OTMIZAÇÃO RADICAL: 300px é o ponto ideal para economia extrema sem perder beleza no celular
-                            const MAX_WIDTH = 300; 
-                            const MAX_HEIGHT = 450;
+                            // EQUILÍBRIO: 500px é nítido e leve o suficiente para carregar 4 fotos
+                            const MAX_WIDTH = 500; 
+                            const MAX_HEIGHT = 650;
                             let width = img.width;
                             let height = img.height;
 
@@ -329,9 +341,11 @@
                             canvas.width = width;
                             canvas.height = height;
                             const ctx = canvas.getContext('2d');
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = 'high';
                             ctx.drawImage(img, 0, 0, width, height);
-                            // Qualidade 30% gera arquivos de ~10KB a ~15KB (Antes eram 50KB+)
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.30); 
+                            // Qualidade 60% traz de volta o brilho e detalhes sem inflar o arquivo demais
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.60); 
                             resolve(dataUrl);
                         };
                     };
@@ -343,7 +357,7 @@
                 if (files.length === 0) return;
                 
                 const remaining = 4 - form.images.length;
-                if (remaining <= 0) return alert("Máximo 4 fotos atingido.");
+                if (remaining <= 0) return alert("Máximo de 4 fotos por peça.");
 
                 setIsSyncing(true);
                 const toProcess = files.slice(0, remaining);
@@ -383,20 +397,21 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Adicione ao menos uma foto.");
+                if (form.images.length === 0) return alert("Adicione pelo menos uma foto.");
 
                 const productData = { 
                     name: form.name,
                     price: parseFloat(form.price),
                     category: form.category,
-                    images: form.images
+                    images: form.images,
+                    id: editingProduct ? editingProduct.id : Date.now().toString()
                 };
 
                 let newList;
                 if (editingProduct) {
-                    newList = products.map(p => p.id === editingProduct.id ? { ...productData, id: p.id } : p);
+                    newList = products.map(p => p.id === editingProduct.id ? productData : p);
                 } else {
-                    newList = [...products, { ...productData, id: Date.now().toString() }];
+                    newList = [...products, productData];
                 }
                 
                 setProducts(newList);
@@ -408,7 +423,7 @@
             };
 
             const handleDelete = async (id) => {
-                if (confirm("Excluir definitivamente?")) {
+                if (confirm("Excluir definitivamente do catálogo?")) {
                     const newList = products.filter(p => p.id !== id);
                     setProducts(newList);
                     await syncToCloud(newList);
@@ -429,104 +444,109 @@
                         onLongPressStart={handleLongPressStart}
                         onLongPressEnd={handleLongPressEnd}
                         isPressing={isPressing}
-                        onOpenAdminModal={() => setIsAdminModalOpen(true)}
+                        onOpenAdminModal={() => { setEditingProduct(null); setForm({ name: '', price: '', category: Category.BRINCOS, images: [] }); setIsAdminModalOpen(true); }}
                         cloudStatus={cloudStatus}
                         isSyncing={isSyncing}
                     />
 
                     {!isCatalogOpen ? (
-                        <header className="h-screen relative flex items-center justify-center text-center px-6">
-                            <div className="absolute inset-0 bg-black/60 z-10" />
-                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover grayscale opacity-40" />
-                            <div className="relative z-20">
+                        <header className="h-screen relative flex items-center justify-center text-center px-6 overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black z-10" />
+                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover grayscale brightness-50" />
+                            <div className="relative z-20 animate-fade-in">
                                 <div 
-                                    className="cursor-pointer mb-6 inline-block"
+                                    className="cursor-pointer mb-8 inline-block select-none"
                                     onMouseDown={handleLongPressStart} onMouseUp={handleLongPressEnd} onTouchStart={handleLongPressStart} onTouchEnd={handleLongPressEnd}
                                 >
-                                    <h2 className="text-7xl md:text-9xl font-serif lux-3d-title">Gold Paty</h2>
+                                    <h2 className="text-7xl md:text-9xl font-serif lux-3d-title font-bold">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[0.8em] uppercase text-[10px] mb-12 text-white/70 font-bold">Catálogo Ultra Otimizado</p>
-                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-12 py-5 font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]">Abrir Catálogo</button>
+                                <p className="tracking-[1em] uppercase text-[11px] mb-12 text-white/60 font-medium">Semi-Joias de Luxo</p>
+                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-14 py-6 font-black uppercase text-xs tracking-[0.2em] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(212,175,55,0.3)]">Explorar Coleção</button>
                             </div>
                         </header>
                     ) : (
                         <main className="max-w-7xl mx-auto px-6 py-20 animate-fade-in">
-                            <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-                                <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-20 gap-8">
+                                <div className="flex flex-wrap gap-3 justify-center">
                                     {Object.values(Category).map(c => (
-                                        <button key={c} onClick={() => setSelectedCategory(c)} className={`px-4 py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest border ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black' : 'border-white/10 text-gray-500 hover:text-white transition-colors'}`}>{c}</button>
+                                        <button key={c} onClick={() => setSelectedCategory(c)} className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black shadow-lg' : 'border-white/10 text-gray-500 hover:text-white hover:border-white/30'}`}>{c}</button>
                                     ))}
                                 </div>
-                                <div className="flex items-center gap-4 w-full md:w-auto">
-                                    <input type="text" placeholder="BUSCAR PEÇA..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent border-b border-white/10 focus:border-[#d4af37] outline-none py-2 px-2 text-[10px] tracking-widest w-full md:w-64 transition-all" />
-                                    <button onClick={loadDataFromCloud} className="p-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#d4af37]' : 'text-gray-500'}`}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                        </svg>
-                                    </button>
+                                <div className="flex items-center gap-4 w-full md:w-auto bg-white/5 px-4 py-1 border border-white/5 focus-within:border-[#d4af37]/40 transition-all">
+                                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2"/></svg>
+                                    <input type="text" placeholder="PROCURAR JOIA..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent outline-none py-3 text-[10px] tracking-widest w-full md:w-56" />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
                                 {filtered.length === 0 ? (
-                                    <div className="col-span-full py-20 text-center opacity-30 italic text-sm font-serif">{isSyncing ? "Conectando..." : "Coleção em breve."}</div>
+                                    <div className="col-span-full py-40 text-center text-gray-600 italic font-serif text-lg tracking-wide">Nenhuma peça encontrada nesta categoria.</div>
                                 ) : filtered.map(p => (
-                                    <ProductCard key={p.id} product={p} isEditMode={isEditMode} onEdit={(prod) => { setEditingProduct(prod); setForm({ ...prod, images: prod.images || [] }); setIsAdminModalOpen(true); }} onDelete={handleDelete} onAddToCart={(prod) => { setCart(prev => { const ex = prev.find(i => i.id === prod.id); if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, {...prod, quantity: 1}]; }); setIsCartOpen(true); }} />
+                                    <ProductCard 
+                                        key={p.id} 
+                                        product={p} 
+                                        isEditMode={isEditMode} 
+                                        onEdit={(prod) => { setEditingProduct(prod); setForm({ ...prod }); setIsAdminModalOpen(true); }} 
+                                        onDelete={handleDelete} 
+                                        onAddToCart={(prod) => { setCart(prev => { const ex = prev.find(i => i.id === prod.id); if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, {...prod, quantity: 1}]; }); setIsCartOpen(true); }} 
+                                    />
                                 ))}
                             </div>
                         </main>
                     )}
 
                     {isAdminModalOpen && (
-                        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-black/98" onClick={() => setIsAdminModalOpen(false)} />
-                            <div className="relative bg-[#0d0d0d] border border-[#d4af37]/30 w-full max-w-2xl p-8 shadow-2xl animate-fade-in max-h-[95vh] overflow-y-auto">
-                                <div className="flex justify-between items-center mb-8">
-                                    <h3 className="text-xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Peça' : 'Nova Peça'}</h3>
-                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-500 text-3xl">&times;</button>
+                        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="absolute inset-0 bg-black/95" onClick={() => setIsAdminModalOpen(false)} />
+                            <div className="relative bg-[#0d0d0d] border border-[#d4af37]/30 w-full max-w-2xl p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto rounded-sm">
+                                <div className="flex justify-between items-center mb-10">
+                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase tracking-widest">{editingProduct ? 'Editar Peça' : 'Nova Peça'}</h3>
+                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-500 text-3xl hover:text-white transition-colors">&times;</button>
                                 </div>
                                 
-                                <form onSubmit={handleSaveProduct} className="space-y-6">
+                                <form onSubmit={handleSaveProduct} className="space-y-8">
                                     <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-4 block font-black">Álbum (Máx 4 fotos pequenas)</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                                        <label className="text-[10px] uppercase tracking-widest text-gray-400 mb-4 block font-black">Álbum de Fotos (Máx 4 • Alta Qualidade)</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                                             {form.images.map((img, idx) => (
-                                                <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-gray-900 rounded overflow-hidden group">
+                                                <div key={idx} className="relative aspect-[3/4] border border-white/10 bg-black rounded-sm overflow-hidden group shadow-inner">
                                                     <img src={img} className="w-full h-full object-cover" />
-                                                    <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-900/90 text-white w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs">&times;</button>
+                                                    <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-900/90 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-sm">&times;</button>
                                                 </div>
                                             ))}
                                             {form.images.length < 4 && (
-                                                <div className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2 bg-white/5" onClick={() => fileInputRef.current.click()}>
-                                                    <svg className="w-5 h-5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" /></svg>
-                                                    <span className="text-[8px] uppercase font-black">Fotos</span>
+                                                <div className="image-upload-area aspect-[3/4] flex items-center justify-center flex-col gap-2 bg-white/5 hover:bg-white/10" onClick={() => fileInputRef.current.click()}>
+                                                    <svg className="w-6 h-6 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="1.5" /></svg>
+                                                    <span className="text-[9px] uppercase font-black text-gray-400 tracking-tighter">Adicionar Foto</span>
                                                 </div>
                                             )}
                                         </div>
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                                     </div>
 
-                                    <div>
-                                        <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Nome da Joia</label>
-                                        <input className="admin-input" placeholder="Ex: Brinco Pérola" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-6">
                                         <div>
-                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Preço</label>
-                                            <input type="number" step="0.01" className="admin-input" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+                                            <label className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Título do Produto</label>
+                                            <input className="admin-input" placeholder="Ex: Brinco Cascata de Ouro" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                                         </div>
-                                        <div>
-                                            <label className="text-[9px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Coleção</label>
-                                            <select className="admin-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                                                {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+                                        
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <div>
+                                                <label className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Preço de Venda</label>
+                                                <input type="number" step="0.01" className="admin-input" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 block font-bold">Categoria</label>
+                                                <select className="admin-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                                                    {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-5 font-black uppercase text-[10px] tracking-[0.2em] shadow-xl disabled:opacity-50">
-                                        {isSyncing ? "Comprimindo..." : "Salvar Agora"}
+                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-6 font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl disabled:opacity-50 hover:brightness-110 active:scale-[0.98] transition-all">
+                                        {isSyncing ? "Processando Imagens..." : (editingProduct ? "Salvar Alterações" : "Publicar no Catálogo")}
                                     </button>
                                 </form>
                             </div>
@@ -535,11 +555,13 @@
 
                     {showPasswordModal && (
                         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/98">
-                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-6 text-center animate-fade-in">
-                                <h3 className="text-[#d4af37] font-serif text-3xl uppercase tracking-widest">Painel Mestre</h3>
-                                <input type="password" autoFocus className="admin-input text-center text-xl tracking-widest" placeholder="••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                                <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Entrar</button>
-                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Sair</button>
+                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-8 text-center animate-fade-in">
+                                <h3 className="text-[#d4af37] font-serif text-4xl uppercase tracking-widest font-bold">Painel</h3>
+                                <div className="space-y-4">
+                                    <input type="password" autoFocus className="admin-input text-center text-2xl tracking-[0.5em]" placeholder="••••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+                                    <button type="submit" className="w-full bg-[#d4af37] text-black py-4 font-black uppercase text-[10px] tracking-widest">Entrar</button>
+                                </div>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-600 text-[10px] uppercase font-bold tracking-widest hover:text-white transition-colors">Voltar</button>
                             </form>
                         </div>
                     )}
@@ -548,39 +570,45 @@
                         <div className="fixed inset-0 z-[200] flex justify-end">
                             <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
                             <div className="relative w-full max-w-md bg-[#0a0a0a] h-full flex flex-col animate-slide-left border-l border-[#d4af37]/20 p-8">
-                                <div className="flex justify-between items-center mb-10">
-                                    <h3 className="text-2xl font-serif text-[#d4af37] uppercase tracking-widest">Minha Sacola</h3>
-                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-3xl font-light hover:text-white">&times;</button>
+                                <div className="flex justify-between items-center mb-12">
+                                    <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-widest">Minha Sacola</h3>
+                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-500 text-4xl font-light hover:text-white transition-colors">&times;</button>
                                 </div>
-                                <div className="flex-grow overflow-y-auto space-y-8 pr-2">
+                                <div className="flex-grow overflow-y-auto space-y-8 pr-2 custom-scroll">
                                     {cart.length === 0 ? (
-                                        <div className="text-center mt-32 text-gray-600 italic font-serif opacity-40">Vazia.</div>
+                                        <div className="text-center mt-32 text-gray-700 italic font-serif text-lg opacity-40">Sua sacola está vazia.</div>
                                     ) : cart.map(i => (
-                                        <div key={i.id} className="flex gap-5 border-b border-white/5 pb-6">
-                                            <img src={i.images?.[0]} className="w-20 h-24 object-cover shadow-xl border border-white/5" />
-                                            <div className="flex-grow">
-                                                <p className="text-[10px] font-black uppercase tracking-widest mb-1">{i.name}</p>
-                                                <p className="text-[#d4af37] text-sm font-bold">R$ {parseFloat(i.price).toFixed(2)}</p>
-                                                <div className="flex items-center gap-5 mt-4">
-                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500 w-6 h-6 border border-white/10 flex items-center justify-center hover:text-[#d4af37]">-</button>
-                                                    <span className="text-xs font-bold w-4 text-center">{i.quantity}</span>
-                                                    <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500 w-6 h-6 border border-white/10 flex items-center justify-center hover:text-[#d4af37]">+</button>
+                                        <div key={i.id} className="flex gap-6 border-b border-white/5 pb-8">
+                                            <div className="w-24 h-32 flex-shrink-0 border border-white/10 rounded-sm overflow-hidden">
+                                                <img src={i.images?.[0]} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-grow flex flex-col justify-center">
+                                                <p className="text-[11px] font-black uppercase tracking-widest mb-1 text-white/90">{i.name}</p>
+                                                <p className="text-[#d4af37] text-lg font-bold">R$ {parseFloat(i.price).toFixed(2)}</p>
+                                                <div className="flex items-center gap-6 mt-6">
+                                                    <div className="flex items-center border border-white/10 p-1">
+                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500 w-8 h-8 flex items-center justify-center hover:text-white">-</button>
+                                                        <span className="text-xs font-bold w-6 text-center">{i.quantity}</span>
+                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500 w-8 h-8 flex items-center justify-center hover:text-white">+</button>
+                                                    </div>
+                                                    <button onClick={() => setCart(prev => prev.filter(p => p.id !== i.id))} className="text-[9px] uppercase text-red-900 font-bold tracking-widest">Remover</button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                                 {cart.length > 0 && (
-                                    <div className="mt-auto pt-8 border-t border-white/10">
-                                        <div className="flex justify-between mb-8">
-                                            <span className="text-gray-500 uppercase text-[10px] font-black tracking-[0.2em]">Total</span>
-                                            <span className="font-bold text-2xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}</span>
+                                    <div className="mt-auto pt-10 border-t border-white/10">
+                                        <div className="flex justify-between items-end mb-10">
+                                            <span className="text-gray-500 uppercase text-[11px] font-black tracking-[0.3em]">Total do Pedido</span>
+                                            <span className="font-bold text-3xl text-[#d4af37]">R$ {cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
-                                            const text = `Olá Gold Paty! Escolhi estas joias:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Total: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
+                                            const text = `Olá Gold Paty! Gostaria de encomendar estas peças:\n\n${cart.map(i => `• ${i.name} (${i.quantity}x)`).join('\n')}\n\n*Subtotal: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-                                        }} className="w-full bg-[#25D366] text-white py-5 font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3">
-                                            <span>Enviar Pedido</span>
+                                        }} className="w-full bg-[#25D366] text-white py-6 font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-4 hover:brightness-110 transition-all shadow-xl">
+                                            <span>Finalizar no WhatsApp</span>
+                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                         </button>
                                     </div>
                                 )}
@@ -588,8 +616,17 @@
                         </div>
                     )}
 
-                    <footer className="py-20 text-center border-t border-white/5 opacity-40">
-                        <p className="text-[8px] tracking-[0.4em] uppercase font-black text-gray-500">Gold Paty • Boutique Digital</p>
+                    <footer className="py-32 text-center border-t border-white/5 bg-[#050505]">
+                        <div className="max-w-7xl mx-auto px-6">
+                            <h2 className="text-3xl font-serif lux-3d-title mb-6 font-bold">Gold Paty</h2>
+                            <p className="text-[10px] tracking-[0.5em] uppercase font-black text-gray-600 mb-8">Elegância em cada detalhe</p>
+                            <div className="flex justify-center gap-8 text-[9px] uppercase tracking-widest text-gray-700 font-bold mb-12">
+                                <span className="hover:text-white cursor-pointer transition-colors">Instagram</span>
+                                <span className="hover:text-white cursor-pointer transition-colors">WhatsApp</span>
+                                <span className="hover:text-white cursor-pointer transition-colors">Endereço</span>
+                            </div>
+                            <p className="text-[8px] text-gray-800 uppercase tracking-widest">© 2026 Gold Paty Boutique Digital • Todos os direitos reservados</p>
+                        </div>
                     </footer>
                 </div>
             );
