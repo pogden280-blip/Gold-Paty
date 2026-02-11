@@ -34,7 +34,8 @@
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: shine 6s linear infinite;
+            animation: shine 4s linear infinite;
+            text-shadow: 0 10px 30px rgba(212, 175, 55, 0.1);
         }
         @keyframes shine { to { background-position: 200% center; } }
 
@@ -70,7 +71,7 @@
         .animate-pulse-sync { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
-        .animate-slide-left { animation: slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slide-left { animation: slideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
         ::-webkit-scrollbar { width: 3px; }
@@ -109,44 +110,50 @@
             box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
         }
         
-        .fade-img { transition: opacity 0.3s ease; }
+        .product-image-container img {
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .product-image-container:hover img {
+            transform: scale(1.08);
+        }
         
         .cloudinary-badge {
             position: absolute;
-            top: 5px;
-            left: 5px;
+            top: 10px;
+            left: 10px;
             background: #d4af37;
             color: black;
-            font-size: 7px;
-            padding: 2px 4px;
+            font-size: 8px;
+            padding: 3px 6px;
             border-radius: 2px;
             font-weight: 900;
             text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 5;
         }
 
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
         
-        .error-banner {
-            background: rgba(153, 27, 27, 0.3);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            color: #fca5a5;
-            padding: 16px;
-            border-radius: 4px;
-            font-size: 11px;
-            line-height: 1.6;
-            margin-bottom: 24px;
-            animation: fadeIn 0.3s forwards;
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #d4af37;
+            color: black;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            animation: toastIn 0.5s cubic-bezier(0.16, 1, 0.3, 1), toastOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) 2.5s forwards;
         }
-        
-        .help-box {
-            background: rgba(212, 175, 55, 0.03);
-            border: 1px solid rgba(212, 175, 55, 0.1);
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 24px;
-        }
+        @keyframes toastIn { from { bottom: -50px; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes toastOut { from { bottom: 30px; opacity: 1; } to { bottom: -50px; opacity: 0; } }
     </style>
 </head>
 <body>
@@ -184,25 +191,25 @@
                 setTimeout(() => {
                     setCurrentIdx((prev) => (prev + 1) % images.length);
                     setIsFading(false);
-                }, 100);
+                }, 150);
             };
 
             return (
-                <div className="group bg-[#0d0d0d] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/30 relative animate-fade-in shadow-2xl">
-                    <div className="aspect-[3/4] overflow-hidden bg-black relative cursor-pointer" onClick={handleNext}>
+                <div className="group bg-[#0d0d0d] border border-white/5 overflow-hidden transition-all hover:border-[#d4af37]/40 relative animate-fade-in shadow-2xl">
+                    <div className="aspect-[3/4] overflow-hidden bg-black relative cursor-pointer product-image-container" onClick={handleNext}>
                         {images.length > 0 ? (
                             <img 
                                 src={images[currentIdx]} 
-                                className={`w-full h-full object-cover fade-img ${isFading ? 'opacity-0' : 'opacity-100'}`} 
+                                className={`w-full h-full object-cover transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`} 
                                 alt={product.name} 
                                 loading="lazy" 
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-800 text-[10px] uppercase tracking-widest">Sem Imagem</div>
+                            <div className="w-full h-full flex items-center justify-center text-gray-800 text-[10px] uppercase tracking-[0.3em] font-bold">Sem Mídia</div>
                         )}
                         
                         {images.length > 1 && (
-                            <div className="absolute top-4 left-0 right-0 flex justify-center gap-1.5 pointer-events-none z-10">
+                            <div className="absolute top-6 left-0 right-0 flex justify-center gap-1.5 pointer-events-none z-10">
                                 {images.map((_, i) => (
                                     <div key={i} className={`dot-indicator ${i === currentIdx ? 'active' : ''}`} />
                                 ))}
@@ -210,23 +217,23 @@
                         )}
 
                         {isEditMode ? (
-                            <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm z-20">
-                                <button onClick={(e) => {e.stopPropagation(); onEdit(product);}} className="bg-white text-black px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] w-3/4 hover:bg-[#d4af37] transition-all">Editar Peça</button>
-                                <button onClick={(e) => {e.stopPropagation(); onDelete(product.id);}} className="bg-red-950 text-white px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] w-3/4 hover:bg-red-700 transition-all">Excluir</button>
+                            <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm z-20 px-6">
+                                <button onClick={(e) => {e.stopPropagation(); onEdit(product);}} className="bg-white text-black px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.3em] w-full hover:bg-[#d4af37] transition-all">Editar Joia</button>
+                                <button onClick={(e) => {e.stopPropagation(); onDelete(product.id);}} className="bg-red-950 text-white px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.3em] w-full hover:bg-red-700 transition-all">Excluir</button>
                             </div>
                         ) : (
-                            <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-full group-hover:translate-y-0 transition-all duration-500 z-20">
-                                <button onClick={(e) => {e.stopPropagation(); onAddToCart(product);}} className="w-full bg-white text-black py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#d4af37] shadow-2xl">Adicionar à Sacola</button>
+                            <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-full group-hover:translate-y-0 transition-all duration-500 z-20">
+                                <button onClick={(e) => {e.stopPropagation(); onAddToCart(product);}} className="w-full bg-white text-black py-4.5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#d4af37] shadow-2xl active:scale-95 transition-all">Adicionar à Sacola</button>
                             </div>
                         )}
                     </div>
-                    <div className="p-6">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-[#d4af37] text-[9px] uppercase font-bold tracking-[0.2em]">{product.category}</span>
-                            {images.length > 1 && <span className="text-white/10 text-[8px] font-bold tracking-tighter uppercase">Slide para ver mais</span>}
+                    <div className="p-7">
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="text-[#d4af37] text-[9px] uppercase font-black tracking-[0.3em]">{product.category}</span>
+                            {images.length > 1 && <span className="text-white/20 text-[8px] font-black tracking-widest uppercase">Toque p/ trocar</span>}
                         </div>
-                        <h4 className="text-sm font-medium mb-1 truncate text-white/90 tracking-tight">{product.name}</h4>
-                        <p className="font-bold text-lg text-white font-serif">R$ {parseFloat(product.price).toFixed(2)}</p>
+                        <h4 className="text-sm font-medium mb-1.5 truncate text-white/90 tracking-tight leading-relaxed uppercase">{product.name}</h4>
+                        <p className="font-bold text-xl text-white font-serif">R$ {parseFloat(product.price).toFixed(2)}</p>
                     </div>
                 </div>
             );
@@ -235,7 +242,7 @@
         const Navbar = ({ cartCount, onOpenCart, isVisible, isEditMode, onLongPressStart, onLongPressEnd, isPressing, onOpenAdminModal, cloudStatus, isSyncing }) => {
             if (!isVisible) return null;
             return (
-                <nav className="sticky top-0 z-[100] bg-[#050505]/95 backdrop-blur-xl border-b border-white/5 py-5 px-6 shadow-2xl">
+                <nav className="sticky top-0 z-[100] bg-[#050505]/95 backdrop-blur-2xl border-b border-white/5 py-6 px-6 shadow-2xl">
                     <div className="flex justify-between items-center max-w-7xl mx-auto">
                         <div 
                             className="relative cursor-pointer select-none group"
@@ -243,27 +250,27 @@
                             onTouchStart={onLongPressStart} onTouchEnd={onLongPressEnd}
                         >
                             <div className="flex flex-col items-start">
-                                <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl font-serif font-bold tracking-[0.15em] text-[#d4af37] uppercase group-hover:brightness-125 transition-all">Gold Paty</h1>
-                                    {isEditMode && <span className="bg-[#d4af37] text-black text-[8px] font-black px-2 py-0.5 rounded-sm">ADMINISTRADOR</span>}
+                                <div className="flex items-center gap-4">
+                                    <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-[0.15em] text-[#d4af37] uppercase group-hover:brightness-125 transition-all">Gold Paty</h1>
+                                    {isEditMode && <span className="bg-[#d4af37] text-black text-[8px] font-black px-2 py-0.5 rounded-sm">ADMIN</span>}
                                 </div>
-                                <div className="flex items-center text-[7px] uppercase tracking-[0.3em] text-gray-600 mt-1">
+                                <div className="flex items-center text-[7px] uppercase tracking-[0.4em] text-gray-500 mt-1.5 font-bold">
                                     <span className={`status-dot ${isSyncing ? 'bg-[#d4af37] animate-pulse-sync' : (cloudStatus === 'online' ? 'bg-emerald-500' : 'bg-red-600')}`}></span>
-                                    {isSyncing ? 'Sincronizando...' : (cloudStatus === 'online' ? 'Catálogo Online' : 'Modo Offline')}
+                                    {isSyncing ? 'Sincronizando Mídia...' : (cloudStatus === 'online' ? 'Showroom Online' : 'Modo Offline')}
                                 </div>
                             </div>
                             <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                         </div>
                         
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-8">
                             {isEditMode && (
-                                <button onClick={onOpenAdminModal} className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37] bg-[#d4af37]/5 border border-[#d4af37]/20 px-5 py-2.5 hover:bg-[#d4af37] hover:text-black transition-all">Painel Admin</button>
+                                <button onClick={onOpenAdminModal} className="hidden md:block text-[10px] font-black uppercase tracking-[0.3em] text-[#d4af37] bg-[#d4af37]/5 border border-[#d4af37]/20 px-6 py-3 hover:bg-[#d4af37] hover:text-black transition-all">Gestão</button>
                             )}
-                            <button onClick={onOpenCart} className="relative p-2 group bg-white/5 rounded-full border border-white/5 hover:border-[#d4af37]/40 transition-all">
+                            <button onClick={onOpenCart} className="relative p-3 group bg-white/5 rounded-full border border-white/5 hover:border-[#d4af37]/40 transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-white/80 group-hover:text-[#d4af37] transition-colors">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
                                 </svg>
-                                {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[8px] w-4 h-4 flex items-center justify-center rounded-full font-black ring-2 ring-black">{cartCount}</span>}
+                                {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[9px] w-5 h-5 flex items-center justify-center rounded-full font-black ring-2 ring-black">{cartCount}</span>}
                             </button>
                         </div>
                     </div>
@@ -288,6 +295,7 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const [cloudStatus, setCloudStatus] = useState('offline');
             const [uploadError, setUploadError] = useState(null);
+            const [toast, setToast] = useState(null);
             
             // Cloudinary Config
             const [cloudinaryConfig, setCloudinaryConfig] = useState({
@@ -297,6 +305,11 @@
 
             const pressTimer = useRef(null);
             const fileInputRef = useRef(null);
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 3000);
+            };
 
             const loadDataFromCloud = async () => {
                 setIsSyncing(true);
@@ -345,7 +358,7 @@
                         setCloudStatus('online');
                     }
                 } catch (e) { 
-                    alert("Erro ao salvar catálogo.");
+                    alert("Erro crítico ao sincronizar servidor.");
                 }
                 setIsSyncing(false);
             };
@@ -355,7 +368,7 @@
                 const { cloudName, uploadPreset } = cloudinaryConfig;
 
                 if (!cloudName || !uploadPreset) {
-                    setUploadError("⚠️ Erro: Informe o Cloud Name e o Preset no Painel Admin.");
+                    setUploadError("⚠️ Configuração ausente: Informe Cloud Name e Preset Unsigned.");
                     return null;
                 }
 
@@ -374,20 +387,15 @@
                     if (data.secure_url) {
                         return data.secure_url;
                     } else {
-                        let errorMsg = data.error?.message || "Erro desconhecido no upload.";
-                        
-                        // Diagnóstico inteligente para o usuário
+                        let errorMsg = data.error?.message || "Erro no servidor de mídia.";
                         if (errorMsg.includes("Unknown API key")) {
-                            errorMsg = "❌ ERRO CRÍTICO: 'Unknown API key'. Isso acontece se o Cloud Name ("+cloudName+") estiver errado OU se o seu Preset ("+uploadPreset+") não for do tipo 'Unsigned'. Verifique no painel do Cloudinary.";
-                        } else if (errorMsg.includes("Missing required parameter - file")) {
-                            errorMsg = "❌ ERRO: O arquivo não foi enviado corretamente.";
+                            errorMsg = "❌ Erro: Cloud Name incorreto ou Preset não é 'Unsigned'.";
                         }
-                        
                         setUploadError(errorMsg);
                         return null;
                     }
                 } catch (e) {
-                    setUploadError("❌ Erro de Conexão: Não foi possível alcançar o servidor do Cloudinary.");
+                    setUploadError("❌ Falha de conexão com Cloudinary.");
                     return null;
                 }
             };
@@ -434,12 +442,13 @@
                     setShowPasswordModal(false);
                     setPasswordInput('');
                     if (!isCatalogOpen) setIsCatalogOpen(true);
+                    showToast("Painel de Gestão Ativo");
                 } else { alert("Senha Incorreta"); }
             };
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Adicione ao menos uma foto HD enviada pelo Cloudinary.");
+                if (form.images.length === 0) return alert("A joia precisa de ao menos uma foto HD.");
 
                 const productData = { 
                     name: form.name,
@@ -462,14 +471,25 @@
                 setEditingProduct(null);
                 setForm({ name: '', price: '', category: Category.BRINCOS, images: [] });
                 setIsAdminModalOpen(false);
+                showToast(editingProduct ? "Joia Atualizada" : "Joia Publicada");
             };
 
             const handleDelete = async (id) => {
-                if (confirm("Deseja remover esta joia do catálogo permanentemente?")) {
+                if (confirm("Deseja remover esta joia permanentemente da vitrine?")) {
                     const newList = products.filter(p => p.id !== id);
                     setProducts(newList);
                     await syncToCloud(newList);
+                    showToast("Joia Removida");
                 }
+            };
+
+            const addToCart = (prod) => {
+                setCart(prev => {
+                    const ex = prev.find(i => i.id === prod.id);
+                    if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i);
+                    return [...prev, {...prod, quantity: 1}];
+                });
+                showToast("Adicionado à sacola");
             };
 
             const filtered = useMemo(() => 
@@ -485,6 +505,8 @@
 
             return (
                 <div className="min-h-screen">
+                    {toast && <div className="toast-notification">{toast}</div>}
+                    
                     <Navbar 
                         cartCount={cart.reduce((a,b)=>a+b.quantity,0)} 
                         onOpenCart={() => setIsCartOpen(true)} 
@@ -499,38 +521,38 @@
                     />
 
                     {!isCatalogOpen ? (
-                        <header className="h-screen relative flex items-center justify-center text-center px-6">
+                        <header className="h-screen relative flex items-center justify-center text-center px-6 overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover grayscale brightness-50 scale-105" />
-                            <div className="relative z-20 animate-fade-in max-w-4xl">
+                            <img src="https://images.unsplash.com/photo-1515562141207-7a18b5ce7142?auto=format&fit=crop&q=80&w=1920" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.35] scale-105 animate-[pulse_10s_infinite]" />
+                            <div className="relative z-20 animate-fade-in max-w-5xl">
                                 <div 
-                                    className="cursor-pointer mb-10 inline-block select-none group"
+                                    className="cursor-pointer mb-12 inline-block select-none group"
                                     onMouseDown={handleLongPressStart} onMouseUp={handleLongPressEnd} onTouchStart={handleLongPressStart} onTouchEnd={handleLongPressEnd}
                                 >
-                                    <h2 className="text-8xl md:text-[12rem] font-serif lux-3d-title font-bold leading-none tracking-tighter text-shadow-xl">Gold Paty</h2>
+                                    <h2 className="text-8xl md:text-[14rem] font-serif lux-3d-title font-bold leading-none tracking-tighter">Gold Paty</h2>
                                     <div className="long-press-indicator" style={{ width: isPressing ? '100%' : '0' }}></div>
                                 </div>
-                                <p className="tracking-[1.2em] uppercase text-[12px] mb-16 text-white/50 font-semibold">Exclusividade em Semi-Joias</p>
-                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-16 py-7 font-black uppercase text-xs tracking-[0.3em] hover:scale-110 transition-all shadow-[0_20px_50px_rgba(212,175,55,0.4)]">Entrar na Boutique</button>
+                                <p className="tracking-[1.5em] uppercase text-[12px] md:text-[14px] mb-20 text-white/40 font-black">Fine Jewelry • Exclusividade • Luxo</p>
+                                <button onClick={() => setIsCatalogOpen(true)} className="bg-[#d4af37] text-black px-20 py-8 font-black uppercase text-[11px] tracking-[0.4em] hover:scale-110 transition-all shadow-[0_30px_60px_rgba(212,175,55,0.3)] active:scale-95">Descobrir Boutique</button>
                             </div>
                         </header>
                     ) : (
-                        <main className="max-w-7xl mx-auto px-6 py-24 animate-fade-in">
-                            <div className="flex flex-col md:flex-row justify-between items-center mb-24 gap-10">
-                                <div className="flex flex-wrap gap-4 justify-center">
+                        <main className="max-w-7xl mx-auto px-6 py-28 animate-fade-in">
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-28 gap-12">
+                                <div className="flex flex-wrap gap-5 justify-center">
                                     {Object.values(Category).map(c => (
-                                        <button key={c} onClick={() => setSelectedCategory(c)} className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black shadow-[0_10px_20px_rgba(212,175,55,0.2)]' : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'}`}>{c}</button>
+                                        <button key={c} onClick={() => setSelectedCategory(c)} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border transition-all ${selectedCategory === c ? 'bg-[#d4af37] border-[#d4af37] text-black shadow-[0_15px_30px_rgba(212,175,55,0.2)]' : 'border-white/10 text-gray-600 hover:text-white hover:border-white/30'}`}>{c}</button>
                                     ))}
                                 </div>
-                                <div className="flex items-center gap-4 w-full md:w-auto bg-white/[0.02] px-5 py-2 border border-white/5 focus-within:border-[#d4af37]/40 transition-all">
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2.5"/></svg>
-                                    <input type="text" placeholder="BUSCAR PEÇA..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent outline-none py-3 text-[10px] tracking-[0.2em] w-full md:w-64 font-bold" />
+                                <div className="flex items-center gap-5 w-full md:w-auto bg-white/[0.03] px-6 py-3 border border-white/5 focus-within:border-[#d4af37]/40 transition-all rounded-sm">
+                                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2.5"/></svg>
+                                    <input type="text" placeholder="BUSCAR PEÇA..." value={search} onChange={e => setSearch(e.target.value)} className="bg-transparent outline-none py-2 text-[10px] tracking-[0.3em] w-full md:w-72 font-black text-white" />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-20">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-24">
                                 {filtered.length === 0 ? (
-                                    <div className="col-span-full py-40 text-center text-gray-700 italic font-serif text-xl tracking-wide opacity-50">Nenhuma peça encontrada...</div>
+                                    <div className="col-span-full py-52 text-center text-gray-800 italic font-serif text-2xl tracking-widest opacity-40">Sua nova peça favorita chegará em breve...</div>
                                 ) : filtered.map(p => (
                                     <ProductCard 
                                         key={p.id} 
@@ -538,7 +560,7 @@
                                         isEditMode={isEditMode} 
                                         onEdit={(prod) => { setEditingProduct(prod); setForm({ ...prod }); setUploadError(null); setIsAdminModalOpen(true); }} 
                                         onDelete={handleDelete} 
-                                        onAddToCart={(prod) => { setCart(prev => { const ex = prev.find(i => i.id === prod.id); if (ex) return prev.map(i => i.id === prod.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, {...prod, quantity: 1}]; }); setIsCartOpen(true); }} 
+                                        onAddToCart={addToCart} 
                                     />
                                 ))}
                             </div>
@@ -546,84 +568,73 @@
                     )}
 
                     {isAdminModalOpen && (
-                        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 backdrop-blur-md">
-                            <div className="absolute inset-0 bg-black/98" onClick={() => setIsAdminModalOpen(false)} />
-                            <div className="relative bg-[#080808] border border-white/5 w-full max-w-2xl p-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] animate-fade-in max-h-[90vh] overflow-y-auto custom-scroll">
-                                <div className="flex justify-between items-start mb-8">
+                        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 backdrop-blur-xl">
+                            <div className="absolute inset-0 bg-black/95" onClick={() => setIsAdminModalOpen(false)} />
+                            <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-12 shadow-[0_50px_120px_rgba(0,0,0,1)] animate-fade-in max-h-[90vh] overflow-y-auto custom-scroll rounded-sm">
+                                <div className="flex justify-between items-start mb-12">
                                     <div>
-                                        <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-widest font-bold mb-2">Gestão Gold Paty</h3>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Configuração de Catálogo & Mídia</p>
+                                        <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-[0.2em] font-bold mb-3">Gestão de Acervo</h3>
+                                        <p className="text-[10px] text-gray-600 uppercase tracking-[0.4em] font-black">Digital Boutique Admin</p>
                                     </div>
-                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-600 text-4xl hover:text-white transition-colors">&times;</button>
+                                    <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-700 text-5xl font-thin hover:text-white transition-colors">&times;</button>
                                 </div>
                                 
-                                <div className="help-box">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-3">Como configurar as fotos HD:</h4>
-                                    <ol className="text-[9px] text-gray-400 uppercase space-y-2 font-bold leading-relaxed">
-                                        <li>1. Acesse seu <a href="https://cloudinary.com" target="_blank" className="text-white underline">Cloudinary</a></li>
-                                        <li>2. Copie seu <span className="text-white">Cloud Name</span> e cole abaixo</li>
-                                        <li>3. Vá em <span className="text-white">Settings > Upload > Upload presets</span></li>
-                                        <li>4. Crie um preset e mude para <span className="text-white">Signing Mode: Unsigned</span></li>
-                                        <li>5. Copie o nome do preset e cole abaixo</li>
-                                    </ol>
-                                </div>
-
-                                <div className="bg-[#111] p-6 mb-8 border border-[#d4af37]/20 rounded space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white/[0.02] p-8 mb-12 border border-white/5 rounded-sm space-y-8">
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#d4af37]">Configuração de Mídia (Cloudinary)</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div>
-                                            <label className="text-[9px] text-gray-500 uppercase font-black block mb-2 tracking-widest">Cloud Name</label>
+                                            <label className="text-[9px] text-gray-600 uppercase font-black block mb-3 tracking-widest">Cloud Name</label>
                                             <input className="admin-input text-xs" placeholder="Ex: h99uknvq" value={cloudinaryConfig.cloudName} onChange={e => updateCloudConfig('cloudName', e.target.value)} />
                                         </div>
                                         <div>
-                                            <label className="text-[9px] text-gray-500 uppercase font-black block mb-2 tracking-widest">Unsigned Preset</label>
+                                            <label className="text-[9px] text-gray-600 uppercase font-black block mb-3 tracking-widest">Unsigned Preset</label>
                                             <input className="admin-input text-xs" placeholder="Ex: ml_default" value={cloudinaryConfig.uploadPreset} onChange={e => updateCloudConfig('uploadPreset', e.target.value)} />
                                         </div>
                                     </div>
+                                    <p className="text-[9px] text-gray-700 uppercase leading-relaxed font-black tracking-tighter">Instrução: O preset deve estar em modo <span className="text-white">'Unsigned'</span> no painel de controle do Cloudinary para permitir uploads sem servidor.</p>
                                 </div>
 
                                 {uploadError && (
-                                    <div className="error-banner">
-                                        <div className="flex items-start gap-3">
-                                            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                            <span className="font-bold">{uploadError}</span>
-                                        </div>
+                                    <div className="bg-red-950/20 border border-red-500/30 text-red-400 p-6 rounded-sm mb-10 text-[11px] flex items-start gap-4 uppercase font-bold tracking-tight">
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                        <span>{uploadError}</span>
                                     </div>
                                 )}
 
-                                <form onSubmit={handleSaveProduct} className="space-y-12">
+                                <form onSubmit={handleSaveProduct} className="space-y-14">
                                     <div>
-                                        <label className="text-[10px] uppercase tracking-widest text-gray-400 font-black mb-6 block">Fotos do Produto (Máx 4)</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                                        <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-8 block">Fotos da Joia (Máx 4 • HD)</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-10">
                                             {form.images.map((img, idx) => (
-                                                <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-black rounded overflow-hidden group">
+                                                <div key={idx} className="relative aspect-[3/4] border border-white/10 bg-black rounded-sm overflow-hidden group shadow-xl">
                                                     <img src={img} className="w-full h-full object-cover" />
                                                     <div className="cloudinary-badge">HD Ativo</div>
-                                                    <button type="button" onClick={() => setForm(prev => ({...prev, images: prev.images.filter((_,i)=>i!==idx)}))} className="absolute top-1 right-1 bg-red-900 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-sm">&times;</button>
+                                                    <button type="button" onClick={() => setForm(prev => ({...prev, images: prev.images.filter((_,i)=>i!==idx)}))} className="absolute top-2 right-2 bg-red-950 text-white w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-sm">&times;</button>
                                                 </div>
                                             ))}
                                             {form.images.length < 4 && (
                                                 <div className="image-upload-area aspect-[3/4] bg-white/[0.02]" onClick={() => fileInputRef.current.click()}>
-                                                    <svg className="w-8 h-8 text-[#d4af37] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="1.2" /></svg>
-                                                    <span className="text-[9px] uppercase font-black text-gray-500 tracking-tighter">{isSyncing ? 'Subindo...' : 'Anexar HD'}</span>
+                                                    <svg className="w-10 h-10 text-[#d4af37] mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="1" /></svg>
+                                                    <span className="text-[9px] uppercase font-black text-gray-600 tracking-tighter">{isSyncing ? 'Sincronizando...' : 'Adicionar Foto'}</span>
                                                 </div>
                                             )}
                                         </div>
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-10">
+                                    <div className="grid grid-cols-1 gap-12">
                                         <div>
-                                            <label className="text-[10px] uppercase tracking-widest text-gray-600 mb-3 block font-bold">Título da Peça</label>
-                                            <input className="admin-input" placeholder="Ex: Brinco Cascata Ouro" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                                            <label className="text-[10px] uppercase tracking-widest text-gray-700 mb-4 block font-black">Identificação da Peça</label>
+                                            <input className="admin-input" placeholder="Ex: Anel Solitário Brilhante Ouro" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                                         </div>
                                         
-                                        <div className="grid grid-cols-2 gap-10">
+                                        <div className="grid grid-cols-2 gap-12">
                                             <div>
-                                                <label className="text-[10px] uppercase tracking-widest text-gray-600 mb-3 block font-bold">Preço de Venda</label>
-                                                <input type="number" step="0.01" className="admin-input font-serif text-lg" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+                                                <label className="text-[10px] uppercase tracking-widest text-gray-700 mb-4 block font-black">Preço de Venda (R$)</label>
+                                                <input type="number" step="0.01" className="admin-input font-serif text-xl" placeholder="0,00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] uppercase tracking-widest text-gray-600 mb-3 block font-bold">Categoria</label>
+                                                <label className="text-[10px] uppercase tracking-widest text-gray-700 mb-4 block font-black">Coleção</label>
                                                 <select className="admin-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                                                     {Object.values(Category).filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
@@ -631,8 +642,8 @@
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-8 font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl disabled:opacity-30 hover:brightness-110 active:scale-[0.98] transition-all">
-                                        {isSyncing ? "Processando Mídia..." : (editingProduct ? "Confirmar Edição" : "Publicar no Catálogo")}
+                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-9 font-black uppercase text-[12px] tracking-[0.5em] shadow-[0_30px_60px_rgba(212,175,55,0.2)] disabled:opacity-30 hover:brightness-110 active:scale-[0.98] transition-all">
+                                        {isSyncing ? "Processando..." : (editingProduct ? "Salvar Alterações" : "Publicar Joia")}
                                     </button>
                                 </form>
                             </div>
@@ -641,63 +652,63 @@
 
                     {showPasswordModal && (
                         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black">
-                            <form onSubmit={handlePasswordSubmit} className="max-w-xs w-full space-y-12 text-center animate-fade-in">
-                                <div className="space-y-4">
-                                    <h3 className="text-[#d4af37] font-serif text-5xl uppercase tracking-[0.2em] font-bold">Admin</h3>
-                                    <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black">Acesso Exclusivo Gold Paty</p>
-                                </div>
+                            <form onSubmit={handlePasswordSubmit} className="max-w-sm w-full space-y-16 text-center animate-fade-in">
                                 <div className="space-y-6">
-                                    <input type="password" autoFocus className="admin-input text-center text-3xl tracking-[0.6em] border-none bg-white/5" placeholder="••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                                    <button type="submit" className="w-full bg-[#d4af37] text-black py-6 font-black uppercase text-[10px] tracking-widest">Entrar no Painel</button>
+                                    <h3 className="text-[#d4af37] font-serif text-6xl uppercase tracking-[0.2em] font-bold">Admin</h3>
+                                    <p className="text-[11px] text-gray-600 uppercase tracking-[0.4em] font-black">Chave de Segurança</p>
                                 </div>
-                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-700 text-[10px] uppercase font-bold tracking-widest hover:text-white transition-colors">Cancelar</button>
+                                <div className="space-y-8">
+                                    <input type="password" autoFocus className="admin-input text-center text-4xl tracking-[0.8em] border-none bg-white/[0.04] p-8" placeholder="••••" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+                                    <button type="submit" className="w-full bg-[#d4af37] text-black py-7 font-black uppercase text-[11px] tracking-[0.3em]">Autenticar</button>
+                                </div>
+                                <button type="button" onClick={() => setShowPasswordModal(false)} className="text-gray-800 text-[11px] uppercase font-black tracking-[0.3em] hover:text-white transition-colors">Voltar</button>
                             </form>
                         </div>
                     )}
 
                     {isCartOpen && (
                         <div className="fixed inset-0 z-[400] flex justify-end">
-                            <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setIsCartOpen(false)} />
-                            <div className="relative w-full max-w-md bg-[#050505] h-full flex flex-col animate-slide-left border-l border-white/5 p-12">
-                                <div className="flex justify-between items-center mb-16">
+                            <div className="absolute inset-0 bg-black/95 backdrop-blur-3xl" onClick={() => setIsCartOpen(false)} />
+                            <div className="relative w-full max-w-lg bg-[#050505] h-full flex flex-col animate-slide-left border-l border-white/10 p-12">
+                                <div className="flex justify-between items-center mb-20">
                                     <h3 className="text-4xl font-serif text-[#d4af37] uppercase tracking-widest font-bold">Sua Sacola</h3>
-                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-700 text-5xl font-light hover:text-white transition-colors">&times;</button>
+                                    <button onClick={() => setIsCartOpen(false)} className="text-gray-800 text-6xl font-thin hover:text-white transition-colors">&times;</button>
                                 </div>
-                                <div className="flex-grow overflow-y-auto space-y-12 pr-4 custom-scroll">
+                                <div className="flex-grow overflow-y-auto space-y-14 pr-6 custom-scroll">
                                     {cart.length === 0 ? (
-                                        <div className="text-center mt-32 text-gray-800 italic font-serif text-xl opacity-30">A sacola está vazia...</div>
+                                        <div className="text-center mt-40 text-gray-900 italic font-serif text-2xl tracking-[0.2em] opacity-40">Sua curadoria está vazia...</div>
                                     ) : cart.map(i => (
-                                        <div key={i.id} className="flex gap-8 border-b border-white/[0.03] pb-12">
-                                            <div className="w-32 h-40 flex-shrink-0 border border-white/10 overflow-hidden shadow-2xl">
-                                                <img src={i.images?.[0]} className="w-full h-full object-cover" />
+                                        <div key={i.id} className="flex gap-10 border-b border-white/[0.05] pb-14 group">
+                                            <div className="w-36 h-48 flex-shrink-0 border border-white/10 overflow-hidden shadow-2xl rounded-sm">
+                                                <img src={i.images?.[0]} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                             </div>
                                             <div className="flex-grow flex flex-col justify-center">
-                                                <p className="text-[11px] font-black uppercase tracking-widest mb-3 text-white/70">{i.name}</p>
-                                                <p className="text-[#d4af37] text-2xl font-bold font-serif">R$ {parseFloat(i.price).toFixed(2)}</p>
-                                                <div className="flex items-center gap-10 mt-10">
-                                                    <div className="flex items-center bg-white/5 px-2 py-1 rounded">
-                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-500 w-12 h-12 flex items-center justify-center hover:text-white text-2xl">-</button>
-                                                        <span className="text-xs font-bold w-8 text-center">{i.quantity}</span>
-                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-500 w-12 h-12 flex items-center justify-center hover:text-white text-2xl">+</button>
+                                                <p className="text-[12px] font-black uppercase tracking-[0.3em] mb-4 text-white/80">{i.name}</p>
+                                                <p className="text-[#d4af37] text-3xl font-bold font-serif mb-8">R$ {parseFloat(i.price).toFixed(2)}</p>
+                                                <div className="flex items-center gap-10">
+                                                    <div className="flex items-center bg-white/[0.05] p-2 rounded-sm border border-white/5">
+                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: Math.max(0, p.quantity - 1)} : p).filter(p => p.quantity > 0))} className="text-gray-600 w-12 h-12 flex items-center justify-center hover:text-white text-3xl transition-colors font-thin">-</button>
+                                                        <span className="text-sm font-black w-10 text-center text-white">{i.quantity}</span>
+                                                        <button onClick={() => setCart(prev => prev.map(p => p.id === i.id ? {...p, quantity: p.quantity + 1} : p))} className="text-gray-600 w-12 h-12 flex items-center justify-center hover:text-white text-3xl transition-colors font-thin">+</button>
                                                     </div>
-                                                    <button onClick={() => setCart(prev => prev.filter(p => p.id !== i.id))} className="text-[10px] uppercase text-red-900 font-black tracking-widest hover:text-red-600 transition-colors">Excluir</button>
+                                                    <button onClick={() => setCart(prev => prev.filter(p => p.id !== i.id))} className="text-[10px] uppercase text-red-900 font-black tracking-[0.3em] hover:text-red-600 transition-colors">Remover</button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                                 {cart.length > 0 && (
-                                    <div className="mt-auto pt-16 border-t border-white/10">
-                                        <div className="flex justify-between items-end mb-12">
-                                            <span className="text-gray-600 uppercase text-[12px] font-black tracking-[0.4em]">Total Bruto</span>
+                                    <div className="mt-auto pt-20 border-t border-white/10">
+                                        <div className="flex justify-between items-end mb-16">
+                                            <span className="text-gray-800 uppercase text-[14px] font-black tracking-[0.6em]">Investimento Total</span>
                                             <span className="font-bold text-5xl text-[#d4af37] font-serif">R$ {cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}</span>
                                         </div>
                                         <button onClick={() => {
-                                            const text = `✨ *NOVA ENCOMENDA - GOLD PATY* ✨\n\n${cart.map(i => `💍 ${i.name}\nQuant: ${i.quantity} | Valor: R$ ${(i.price * i.quantity).toFixed(2)}`).join('\n\n')}\n\n━━━━━━━━━━━━━━━━━━━━\n💰 *TOTAL DO PEDIDO: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*`;
+                                            const text = `✨ *SOLICITAÇÃO DE ENCOMENDA - GOLD PATY* ✨\n\n${cart.map(i => `💍 *${i.name}*\nQuant: ${i.quantity} un | Valor: R$ ${(i.price * i.quantity).toFixed(2)}`).join('\n\n')}\n\n━━━━━━━━━━━━━━━━━━━━\n💰 *VALOR TOTAL: R$ ${cart.reduce((a,b)=>a+(parseFloat(b.price)*b.quantity), 0).toFixed(2)}*\n━━━━━━━━━━━━━━━━━━━━\n\nOlá! Gostaria de prosseguir com o pedido destas joias.`;
                                             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-                                        }} className="w-full bg-[#25D366] text-white py-8 font-black uppercase text-[11px] tracking-[0.4em] flex items-center justify-center gap-6 hover:brightness-110 active:scale-95 transition-all shadow-[0_20px_50px_rgba(37,211,102,0.2)]">
+                                        }} className="w-full bg-[#25D366] text-white py-9 font-black uppercase text-[12px] tracking-[0.5em] flex items-center justify-center gap-8 hover:brightness-110 active:scale-95 transition-all shadow-[0_30px_70px_rgba(37,211,102,0.25)]">
                                             <span>Finalizar via WhatsApp</span>
-                                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                         </button>
                                     </div>
                                 )}
@@ -705,16 +716,16 @@
                         </div>
                     )}
 
-                    <footer className="py-40 text-center border-t border-white/[0.03] bg-black">
+                    <footer className="py-52 text-center border-t border-white/[0.05] bg-black">
                         <div className="max-w-7xl mx-auto px-6">
-                            <h2 className="text-5xl font-serif lux-3d-title mb-10 font-bold leading-none tracking-tighter">Gold Paty</h2>
-                            <p className="text-[10px] tracking-[1em] uppercase font-black text-gray-700 mb-16">Fine Jewelry & Boutique</p>
-                            <div className="flex justify-center gap-16 text-[11px] uppercase tracking-[0.4em] text-gray-800 font-black mb-24">
-                                <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" className="hover:text-white transition-all">WhatsApp</a>
-                                <span className="hover:text-white transition-all">Instagram</span>
-                                <span className="hover:text-white transition-all">Coleções</span>
+                            <h2 className="text-6xl font-serif lux-3d-title mb-12 font-bold leading-none tracking-tighter">Gold Paty</h2>
+                            <p className="text-[11px] tracking-[1.2em] uppercase font-black text-gray-800 mb-20">Areté & Exclusividade Digital</p>
+                            <div className="flex justify-center gap-20 text-[12px] uppercase tracking-[0.5em] text-gray-800 font-black mb-32">
+                                <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" className="hover:text-white transition-all underline underline-offset-8 decoration-white/10">WhatsApp</a>
+                                <span className="hover:text-white transition-all underline underline-offset-8 decoration-white/10">Instagram</span>
+                                <span className="hover:text-white transition-all underline underline-offset-8 decoration-white/10">Sobre Nós</span>
                             </div>
-                            <p className="text-[9px] text-gray-900 uppercase tracking-widest font-black">© 2026 Gold Paty • Boutique Premium • Brasil</p>
+                            <p className="text-[10px] text-gray-900 uppercase tracking-[0.3em] font-black">© 2026 Gold Paty • Crafted for Excellence • Boutique de Semi-Joias Premium</p>
                         </div>
                     </footer>
                 </div>
