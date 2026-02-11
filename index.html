@@ -330,8 +330,10 @@
             };
 
             const uploadToCloudinary = async (file) => {
-                if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
-                    alert("IMPORTANTE: Para enviar fotos, você precisa configurar um 'Unsigned Upload Preset' nas configurações do seu Cloudinary.");
+                if (!cloudinaryConfig.cloudName) return null;
+                
+                if (!cloudinaryConfig.uploadPreset) {
+                    alert("⚠️ ALERTA: Você precisa configurar o 'Upload Preset' nas configurações do seu Cloudinary antes de enviar fotos.");
                     return null;
                 }
 
@@ -348,7 +350,7 @@
                     if (data.secure_url) {
                         return data.secure_url;
                     } else {
-                        throw new Error(data.error?.message || "Erro no upload - Verifique se o preset está correto.");
+                        throw new Error(data.error?.message || "Upload falhou. Verifique se o preset está como 'Unsigned'.");
                     }
                 } catch (e) {
                     alert("Erro no Cloudinary: " + e.message);
@@ -401,7 +403,7 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Adicione ao menos uma foto HD via Cloudinary.");
+                if (form.images.length === 0) return alert("Adicione ao menos uma foto HD enviada pelo Cloudinary.");
 
                 const productData = { 
                     name: form.name,
@@ -439,8 +441,9 @@
             , [selectedCategory, search, products]);
 
             const updatePreset = (val) => {
-                setCloudinaryConfig(prev => ({...prev, uploadPreset: val}));
-                localStorage.setItem('gp_cloudinary_preset', val);
+                const cleanVal = val.trim();
+                setCloudinaryConfig(prev => ({...prev, uploadPreset: cleanVal}));
+                localStorage.setItem('gp_cloudinary_preset', cleanVal);
             };
 
             return (
@@ -512,25 +515,26 @@
                                 <div className="flex justify-between items-start mb-10">
                                     <div>
                                         <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-widest font-bold mb-2">Painel Gestão</h3>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Armazenamento Profissional Cloudinary HD</p>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Servidor de Fotos HD Ativo</p>
                                     </div>
                                     <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-600 text-4xl hover:text-white transition-colors">&times;</button>
                                 </div>
                                 
                                 <div className="bg-[#111] p-6 mb-10 border border-[#d4af37]/20 rounded space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <h4 className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">Configuração do Cloudinary</h4>
-                                        <span className="text-[9px] bg-[#d4af37] text-black px-2 py-0.5 font-black rounded-sm">ATIVO: h99uknvq</span>
+                                        <h4 className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">Chave Cloudinary Obrigatória</h4>
+                                        <span className="text-[9px] bg-[#d4af37] text-black px-2 py-0.5 font-black rounded-sm">CLOUD: h99uknvq</span>
                                     </div>
                                     <div className="grid grid-cols-1 gap-4">
-                                        <p className="text-[9px] text-gray-500 uppercase leading-relaxed">Para funcionar, crie um **Upload Preset** no seu Cloudinary (Settings > Upload) e mude para **Unsigned**. Cole o nome dele abaixo:</p>
+                                        <p className="text-[9px] text-gray-500 uppercase leading-relaxed">Para habilitar o envio de fotos, você deve colar o nome do seu **Unsigned Upload Preset** criado nas configurações do Cloudinary abaixo:</p>
                                         <input className="admin-input text-xs" placeholder="Cole aqui seu 'Unsigned Upload Preset'" value={cloudinaryConfig.uploadPreset} onChange={e => updatePreset(e.target.value)} />
+                                        {!cloudinaryConfig.uploadPreset && <p className="text-[8px] text-red-500 font-bold uppercase animate-pulse">⚠️ O catálogo não aceitará novas fotos sem esta chave.</p>}
                                     </div>
                                 </div>
 
                                 <form onSubmit={handleSaveProduct} className="space-y-10">
                                     <div>
-                                        <label className="text-[10px] uppercase tracking-widest text-gray-400 font-black mb-4 block">Fotos em HD (Cloudinary)</label>
+                                        <label className="text-[10px] uppercase tracking-widest text-gray-400 font-black mb-4 block">Fotos da Joia (Cloudinary HD)</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                                             {form.images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-black rounded overflow-hidden group shadow-2xl">
@@ -546,7 +550,7 @@
                                                 </div>
                                             )}
                                         </div>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+                                        <input type="file" key={form.images.length} ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-8">
@@ -569,8 +573,8 @@
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-7 font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl disabled:opacity-30 hover:brightness-110 active:scale-[0.98] transition-all">
-                                        {isSyncing ? "Processando..." : (editingProduct ? "Salvar Atualização" : "Publicar Joia HD")}
+                                    <button type="submit" disabled={isSyncing || !cloudinaryConfig.uploadPreset} className="w-full bg-[#d4af37] text-black py-7 font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl disabled:opacity-30 hover:brightness-110 active:scale-[0.98] transition-all">
+                                        {isSyncing ? "Sincronizando..." : (editingProduct ? "Salvar Alterações" : "Publicar Joia")}
                                     </button>
                                 </form>
                             </div>
