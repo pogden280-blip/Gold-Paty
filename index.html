@@ -111,13 +111,22 @@
         
         .fade-img { transition: opacity 0.3s ease; }
         
-        /* Skeleton loading effect */
-        .skeleton {
-            background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
+        .cloudinary-badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: #d4af37;
+            color: black;
+            font-size: 7px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: 900;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
-        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -228,7 +237,7 @@
                         
                         <div className="flex items-center gap-6">
                             {isEditMode && (
-                                <button onClick={onOpenAdminModal} className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37] bg-[#d4af37]/5 border border-[#d4af37]/20 px-5 py-2.5 hover:bg-[#d4af37] hover:text-black transition-all">Adicionar Produto</button>
+                                <button onClick={onOpenAdminModal} className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37] bg-[#d4af37]/5 border border-[#d4af37]/20 px-5 py-2.5 hover:bg-[#d4af37] hover:text-black transition-all">Painel Admin</button>
                             )}
                             <button onClick={onOpenCart} className="relative p-2 group bg-white/5 rounded-full border border-white/5 hover:border-[#d4af37]/40 transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-white/80 group-hover:text-[#d4af37] transition-colors">
@@ -258,6 +267,12 @@
             const [form, setForm] = useState({ name: '', price: '', category: Category.BRINCOS, images: [] });
             const [isSyncing, setIsSyncing] = useState(false);
             const [cloudStatus, setCloudStatus] = useState('offline');
+            
+            // Cloud Name fornecido: h99uknvq
+            const [cloudinaryConfig, setCloudinaryConfig] = useState({
+                cloudName: 'h99uknvq',
+                uploadPreset: localStorage.getItem('gp_cloudinary_preset') || ''
+            });
 
             const pressTimer = useRef(null);
             const fileInputRef = useRef(null);
@@ -278,11 +293,11 @@
                         if (data.record && Array.isArray(data.record)) {
                             setProducts(data.record);
                             setCloudStatus('online');
-                            localStorage.setItem('gp_products_v8', JSON.stringify(data.record));
+                            localStorage.setItem('gp_products_v9', JSON.stringify(data.record));
                         }
                     }
                 } catch (e) {
-                    const local = localStorage.getItem('gp_products_v8');
+                    const local = localStorage.getItem('gp_products_v9');
                     if (local) setProducts(JSON.parse(local));
                     setCloudStatus('offline');
                 }
@@ -305,57 +320,40 @@
                     });
                     
                     if (res.ok) {
-                        localStorage.setItem('gp_products_v8', JSON.stringify(updatedList));
+                        localStorage.setItem('gp_products_v9', JSON.stringify(updatedList));
                         setCloudStatus('online');
-                    } else {
-                        alert("Erro de Limite: O banco de dados atingiu o limite máximo de armazenamento para fotos de luxo. Tente remover produtos antigos para liberar espaço.");
                     }
                 } catch (e) { 
-                    alert("Erro crítico de conexão com a nuvem.");
+                    alert("Erro ao salvar catálogo.");
                 }
                 setIsSyncing(false);
             };
 
-            const processImage = (file) => {
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = (event) => {
-                        const img = new Image();
-                        img.src = event.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const MAX_DIMENSION = 800; 
-                            let width = img.width;
-                            let height = img.height;
+            const uploadToCloudinary = async (file) => {
+                if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
+                    alert("IMPORTANTE: Para enviar fotos, você precisa configurar um 'Unsigned Upload Preset' nas configurações do seu Cloudinary.");
+                    return null;
+                }
 
-                            if (width > height) {
-                                if (width > MAX_DIMENSION) {
-                                    height *= MAX_DIMENSION / width;
-                                    width = MAX_DIMENSION;
-                                }
-                            } else {
-                                if (height > MAX_DIMENSION) {
-                                    width *= MAX_DIMENSION / height;
-                                    height = MAX_DIMENSION;
-                                }
-                            }
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', cloudinaryConfig.uploadPreset);
 
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d', { alpha: false });
-                            ctx.imageSmoothingEnabled = true;
-                            ctx.imageSmoothingQuality = 'high';
-                            
-                            ctx.fillStyle = '#000';
-                            ctx.fillRect(0, 0, width, height);
-                            ctx.drawImage(img, 0, 0, width, height);
-                            
-                            const dataUrl = canvas.toDataURL('image/webp', 0.75); 
-                            resolve(dataUrl);
-                        };
-                    };
-                });
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.secure_url) {
+                        return data.secure_url;
+                    } else {
+                        throw new Error(data.error?.message || "Erro no upload - Verifique se o preset está correto.");
+                    }
+                } catch (e) {
+                    alert("Erro no Cloudinary: " + e.message);
+                    return null;
+                }
             };
 
             const handleFileChange = async (e) => {
@@ -367,9 +365,13 @@
 
                 setIsSyncing(true);
                 const toProcess = files.slice(0, remaining);
-                const processed = await Promise.all(toProcess.map(file => processImage(file)));
                 
-                setForm(prev => ({ ...prev, images: [...prev.images, ...processed] }));
+                const uploadPromises = toProcess.map(file => uploadToCloudinary(file));
+                const results = await Promise.all(uploadPromises);
+                
+                const successfulUploads = results.filter(url => url !== null);
+                
+                setForm(prev => ({ ...prev, images: [...prev.images, ...successfulUploads] }));
                 setIsSyncing(false);
                 e.target.value = ''; 
             };
@@ -399,7 +401,7 @@
 
             const handleSaveProduct = async (e) => {
                 e.preventDefault();
-                if (form.images.length === 0) return alert("Adicione ao menos uma foto HD.");
+                if (form.images.length === 0) return alert("Adicione ao menos uma foto HD via Cloudinary.");
 
                 const productData = { 
                     name: form.name,
@@ -436,10 +438,10 @@
                 products.filter(p => (selectedCategory === Category.TODOS || p.category === selectedCategory) && p.name.toLowerCase().includes(search.toLowerCase()))
             , [selectedCategory, search, products]);
 
-            const storageUsage = useMemo(() => {
-                const str = JSON.stringify(products);
-                return (str.length / (1024 * 1024)).toFixed(2); 
-            }, [products]);
+            const updatePreset = (val) => {
+                setCloudinaryConfig(prev => ({...prev, uploadPreset: val}));
+                localStorage.setItem('gp_cloudinary_preset', val);
+            };
 
             return (
                 <div className="min-h-screen">
@@ -506,32 +508,41 @@
                     {isAdminModalOpen && (
                         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 backdrop-blur-md">
                             <div className="absolute inset-0 bg-black/98" onClick={() => setIsAdminModalOpen(false)} />
-                            <div className="relative bg-[#080808] border border-white/5 w-full max-w-2xl p-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] animate-fade-in max-h-[90vh] overflow-y-auto">
-                                <div className="flex justify-between items-start mb-12">
+                            <div className="relative bg-[#080808] border border-white/5 w-full max-w-2xl p-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] animate-fade-in max-h-[90vh] overflow-y-auto custom-scroll">
+                                <div className="flex justify-between items-start mb-10">
                                     <div>
-                                        <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-widest font-bold mb-2">{editingProduct ? 'Editar Peça' : 'Nova Joia'}</h3>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Preencha os dados para atualizar o catálogo HD</p>
+                                        <h3 className="text-3xl font-serif text-[#d4af37] uppercase tracking-widest font-bold mb-2">Painel Gestão</h3>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Armazenamento Profissional Cloudinary HD</p>
                                     </div>
                                     <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-600 text-4xl hover:text-white transition-colors">&times;</button>
                                 </div>
                                 
+                                <div className="bg-[#111] p-6 mb-10 border border-[#d4af37]/20 rounded space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">Configuração do Cloudinary</h4>
+                                        <span className="text-[9px] bg-[#d4af37] text-black px-2 py-0.5 font-black rounded-sm">ATIVO: h99uknvq</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <p className="text-[9px] text-gray-500 uppercase leading-relaxed">Para funcionar, crie um **Upload Preset** no seu Cloudinary (Settings > Upload) e mude para **Unsigned**. Cole o nome dele abaixo:</p>
+                                        <input className="admin-input text-xs" placeholder="Cole aqui seu 'Unsigned Upload Preset'" value={cloudinaryConfig.uploadPreset} onChange={e => updatePreset(e.target.value)} />
+                                    </div>
+                                </div>
+
                                 <form onSubmit={handleSaveProduct} className="space-y-10">
                                     <div>
-                                        <div className="flex justify-between items-end mb-5">
-                                            <label className="text-[10px] uppercase tracking-widest text-gray-400 font-black">Álbum HD (Máx 4 fotos)</label>
-                                            <span className="text-[9px] text-gray-600 uppercase font-bold">Uso: {storageUsage}MB</span>
-                                        </div>
+                                        <label className="text-[10px] uppercase tracking-widest text-gray-400 font-black mb-4 block">Fotos em HD (Cloudinary)</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                                             {form.images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-[3/4] border border-white/5 bg-black rounded overflow-hidden group shadow-2xl">
                                                     <img src={img} className="w-full h-full object-cover" />
+                                                    <div className="cloudinary-badge">HD Cloud</div>
                                                     <button type="button" onClick={() => setForm(prev => ({...prev, images: prev.images.filter((_,i)=>i!==idx)}))} className="absolute top-1 right-1 bg-red-900 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-sm">&times;</button>
                                                 </div>
                                             ))}
                                             {form.images.length < 4 && (
                                                 <div className="image-upload-area aspect-[3/4] bg-white/[0.02]" onClick={() => fileInputRef.current.click()}>
                                                     <svg className="w-7 h-7 text-[#d4af37] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="1.2" /></svg>
-                                                    <span className="text-[8px] uppercase font-black text-gray-500 tracking-widest">Enviar HD</span>
+                                                    <span className="text-[8px] uppercase font-black text-gray-500 tracking-widest">{isSyncing ? 'Subindo...' : 'Enviar HD'}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -559,7 +570,7 @@
                                     </div>
 
                                     <button type="submit" disabled={isSyncing} className="w-full bg-[#d4af37] text-black py-7 font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl disabled:opacity-30 hover:brightness-110 active:scale-[0.98] transition-all">
-                                        {isSyncing ? "Processando Alta Qualidade..." : (editingProduct ? "Salvar Atualização" : "Publicar Joia")}
+                                        {isSyncing ? "Processando..." : (editingProduct ? "Salvar Atualização" : "Publicar Joia HD")}
                                     </button>
                                 </form>
                             </div>
